@@ -100,6 +100,8 @@ class ProleadFileObject {
     );
   }
 
+  String get url => downloadUrl;
+
   bool get isImage => contentType.toLowerCase().startsWith('image/');
   bool get isVideo => contentType.toLowerCase().startsWith('video/');
   bool get isAudio => contentType.toLowerCase().startsWith('audio/');
