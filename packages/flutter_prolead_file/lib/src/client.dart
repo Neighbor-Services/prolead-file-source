@@ -136,6 +136,62 @@ class ProleadFileClient {
     return completer.future;
   }
 
+  /// Upload a File, raw bytes, or binary payload with optional progress callback.
+  Future<ProleadFileObject> upload({
+    String bucket = 'default',
+    required String path,
+    required dynamic file, // File (dart:io) or Uint8List
+    String? contentType,
+    bool isPublic = true,
+    void Function(int sent, int total)? onProgress,
+  }) async {
+    Uint8List bytes;
+    String filename;
+
+    if (file is Uint8List) {
+      bytes = file;
+      filename = path.split('/').last;
+    } else {
+      try {
+        bytes = (file as dynamic).readAsBytesSync();
+        filename = (file.path as String).split(RegExp(r'[/\\]')).last;
+      } catch (_) {
+        bytes = await (file as dynamic).readAsBytes();
+        filename = (file.path as String).split(RegExp(r'[/\\]')).last;
+      }
+    }
+
+    if (onProgress != null) {
+      final completer = Completer<ProleadFileObject>();
+      uploadBytesWithProgress(
+        bucket: bucket,
+        path: path,
+        bytes: bytes,
+        filename: filename,
+        contentType: contentType,
+        isPublic: isPublic,
+      ).listen(
+        (event) {
+          onProgress(event.bytesUploaded, event.totalBytes);
+          if (event.isCompleted && event.result != null) {
+            completer.complete(event.result!);
+          }
+        },
+        onError: (err) => completer.completeError(err),
+      );
+      return completer.future;
+    } else {
+      return uploadBytes(
+        bucket: bucket,
+        path: path,
+        bytes: bytes,
+        filename: filename,
+        contentType: contentType,
+        isPublic: isPublic,
+      );
+    }
+  }
+
   /// Convenience method to upload a UTF-8 string as a file.
   Future<ProleadFileObject> uploadString({
     String bucket = 'default',
