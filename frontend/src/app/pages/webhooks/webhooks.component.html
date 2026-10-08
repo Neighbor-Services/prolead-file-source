@@ -1,0 +1,526 @@
+<div class="webhooks-container">
+  <!-- Header Row -->
+  <div class="header-section">
+    <div class="title-group">
+      <div class="title-with-badge">
+        <h1>Webhook Broadcasts</h1>
+        <span class="badge-live-pulse">
+          <span class="pulse-dot"></span> Live HMAC Dispatcher
+        </span>
+      </div>
+      <p class="subtitle">
+        Broadcast cryptographically signed event notifications to microservices, Lambda functions, or external webhooks in real-time.
+      </p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-primary" (click)="openRegisterModal()">
+        <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        <span>Register Webhook</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- KPI Metrics Cards -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-icon-wrap primary">
+        <svg class="svg-icon" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+      </div>
+      <div class="kpi-info">
+        <span class="kpi-label">Total Listeners</span>
+        <span class="kpi-value">{{ totalWebhooksCount() }}</span>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon-wrap success">
+        <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+      </div>
+      <div class="kpi-info">
+        <span class="kpi-label">Active Listeners</span>
+        <span class="kpi-value">{{ activeWebhooksCount() }}</span>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon-wrap purple">
+        <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+      </div>
+      <div class="kpi-info">
+        <span class="kpi-label">Total Deliveries</span>
+        <span class="kpi-value">{{ totalDeliveriesCount() | number }}</span>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon-wrap amber">
+        <svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+      </div>
+      <div class="kpi-info">
+        <span class="kpi-label">Global Success Rate</span>
+        <span class="kpi-value text-emerald">{{ overallSuccessRate() }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search & Status Filter Bar -->
+  <div class="filter-toolbar">
+    <div class="search-box">
+      <svg class="svg-icon svg-icon-sm search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      <input 
+        type="text" 
+        placeholder="Search webhooks by name, destination URL, or event..." 
+        [value]="searchQuery()" 
+        (input)="searchQuery.set($any($event.target).value)" />
+      @if (searchQuery()) {
+        <button class="clear-search" (click)="searchQuery.set('')">✕</button>
+      }
+    </div>
+
+    <div class="segmented-filters">
+      <button 
+        class="filter-tab" 
+        [class.active]="statusFilter() === 'all'" 
+        (click)="statusFilter.set('all')">
+        All Listeners ({{ webhooks().length }})
+      </button>
+      <button 
+        class="filter-tab" 
+        [class.active]="statusFilter() === 'active'" 
+        (click)="statusFilter.set('active')">
+        Active
+      </button>
+      <button 
+        class="filter-tab" 
+        [class.active]="statusFilter() === 'paused'" 
+        (click)="statusFilter.set('paused')">
+        Paused
+      </button>
+    </div>
+  </div>
+
+  <!-- Webhooks Glass Table Card -->
+  <div class="glass-table-card">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Target Endpoint</th>
+          <th>Subscribed Events</th>
+          <th>HMAC Secret Key</th>
+          <th>Health & Stats</th>
+          <th>Status</th>
+          <th style="text-align: right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (wh of filteredWebhooks(); track wh.id) {
+          <tr class="table-row" [class.paused-row]="!wh.enabled">
+            <!-- Target Endpoint -->
+            <td>
+              <div class="endpoint-cell">
+                <div class="endpoint-name-row">
+                  <span class="endpoint-name">{{ wh.name || 'Webhook Endpoint' }}</span>
+                  <span class="protocol-badge font-mono">{{ wh.url.startsWith('https') ? 'HTTPS' : 'HTTP' }}</span>
+                </div>
+                <div class="endpoint-url-row">
+                  <span class="endpoint-url font-mono" title="{{ wh.url }}">{{ wh.url }}</span>
+                  <button class="copy-url-btn" (click)="copyText(wh.url, 'Webhook URL copied!')" title="Copy URL">
+                    <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  </button>
+                </div>
+              </div>
+            </td>
+
+            <!-- Subscribed Events -->
+            <td>
+              <div class="events-cell">
+                @if (wh.events.includes('*')) {
+                  <span class="event-pill wildcard">★ All Events (*)</span>
+                } @else {
+                  @for (ev of wh.events.slice(0, 3); track ev) {
+                    <span class="event-pill">{{ ev }}</span>
+                  }
+                  @if (wh.events.length > 3) {
+                    <span class="event-pill more">+{{ wh.events.length - 3 }} more</span>
+                  }
+                }
+              </div>
+            </td>
+
+            <!-- HMAC Secret Key -->
+            <td>
+              <div class="secret-cell">
+                @if (revealedSecrets().has(wh.id)) {
+                  <span class="secret-text font-mono">{{ wh.secret || 'Auto-generated' }}</span>
+                } @else {
+                  <span class="secret-text font-mono masked">{{ wh.secret ? wh.secret.substring(0, 8) + '••••••••••••' : '••••••••••••••••' }}</span>
+                }
+                <div class="secret-actions">
+                  <button class="icon-action-btn" (click)="toggleSecretVisibility(wh.id)" title="Toggle Secret Visibility">
+                    @if (revealedSecrets().has(wh.id)) {
+                      <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                    } @else {
+                      <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    }
+                  </button>
+                  @if (wh.secret) {
+                    <button class="icon-action-btn" (click)="copyText(wh.secret, 'Secret key copied!')" title="Copy Secret">
+                      <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    </button>
+                  }
+                </div>
+              </div>
+            </td>
+
+            <!-- Health & Stats -->
+            <td>
+              <div class="health-cell">
+                @if (wh.lastStatusCode && wh.lastStatusCode > 0) {
+                  <span class="status-code-pill" [class.success]="wh.lastStatusCode >= 200 && wh.lastStatusCode < 300" [class.error]="wh.lastStatusCode >= 400 || wh.lastStatusCode === 0">
+                    {{ wh.lastStatusCode }} {{ wh.lastStatusCode === 200 ? 'OK' : '' }}
+                  </span>
+                } @else {
+                  <span class="status-code-pill muted">No dispatches</span>
+                }
+                <div class="stats-counts font-mono">
+                  <span class="success-count">✓ {{ wh.successCount || 0 }}</span>
+                  <span class="fail-count" *ngIf="wh.failureCount">✕ {{ wh.failureCount }}</span>
+                </div>
+              </div>
+            </td>
+
+            <!-- Status Toggle -->
+            <td>
+              <button 
+                class="status-toggle-btn" 
+                [class.active]="wh.enabled" 
+                (click)="toggleWebhookStatus(wh)" 
+                title="{{ wh.enabled ? 'Click to Pause' : 'Click to Activate' }}">
+                <span class="toggle-indicator"></span>
+                <span class="toggle-text">{{ wh.enabled ? 'ACTIVE' : 'PAUSED' }}</span>
+              </button>
+            </td>
+
+            <!-- Action Buttons -->
+            <td style="text-align: right;">
+              <div class="row-actions">
+                <button class="btn btn-sm btn-ghost" (click)="testPing(wh)" title="Send Test Ping">
+                  <svg class="svg-icon svg-icon-xs text-amber" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                  <span>Test Ping</span>
+                </button>
+
+                <button class="btn btn-sm btn-ghost" (click)="openDeliveries(wh)" title="View Delivery History">
+                  <svg class="svg-icon svg-icon-xs text-indigo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                  <span>Deliveries</span>
+                </button>
+
+                <button class="btn btn-sm btn-ghost" (click)="openVerifyModal(wh)" title="HMAC Verification Code">
+                  <svg class="svg-icon svg-icon-xs text-cyan" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                  <span>Verify</span>
+                </button>
+
+                <button class="btn btn-sm btn-ghost text-rose" (click)="deleteWebhook(wh)" title="Delete Webhook">
+                  <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        }
+
+        @if (filteredWebhooks().length === 0) {
+          <tr>
+            <td colspan="6" class="empty-state-container">
+              <div class="empty-state-content">
+                <div class="empty-icon-circle">
+                  <svg class="svg-icon svg-icon-md" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                </div>
+                <h3>No Webhook Listeners Registered</h3>
+                <p>Add an endpoint to broadcast live storage events with HMAC SHA-256 signatures.</p>
+                <button class="btn btn-primary btn-sm" (click)="openRegisterModal()">+ Register Webhook</button>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- MODAL: Register Webhook -->
+  @if (showNewWebhookModal()) {
+    <div class="modal-backdrop" (click)="showNewWebhookModal.set(false)">
+      <div class="modal-card modal-md animate-scale-up" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <div class="icon-circle-indigo">
+              <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+            </div>
+            <div>
+              <h3>Register Webhook Listener</h3>
+              <p class="modal-subtitle">Configure an outgoing HTTPS endpoint to receive signed JSON event notifications.</p>
+            </div>
+          </div>
+          <button class="close-btn" (click)="showNewWebhookModal.set(false)">✕</button>
+        </div>
+
+        <form (submit)="createWebhook(); $event.preventDefault()">
+          <div class="form-body">
+            <!-- Webhook Name -->
+            <div class="form-group">
+              <label class="form-label">Listener Name / Client Service</label>
+              <input 
+                type="text" 
+                class="form-control" 
+                placeholder="e.g. Audit Service / Media Transcoder / Slack Bot" 
+                [value]="newWebhookName()" 
+                (input)="newWebhookName.set($any($event.target).value)" />
+            </div>
+
+            <!-- Destination URL -->
+            <div class="form-group">
+              <label class="form-label">Destination Webhook URL <span class="text-rose">*</span></label>
+              <input 
+                type="url" 
+                class="form-control font-mono" 
+                placeholder="https://api.my-domain.com/webhooks/prolead-file" 
+                [value]="newWebhookUrl()" 
+                (input)="newWebhookUrl.set($any($event.target).value)" 
+                required />
+              <span class="field-hint">Must be an accessible HTTP or HTTPS URL capable of accepting POST requests.</span>
+            </div>
+
+            <!-- Secret Key -->
+            <div class="form-group">
+              <label class="form-label">Signing Secret Key (Optional)</label>
+              <input 
+                type="text" 
+                class="form-control font-mono" 
+                placeholder="Leave blank to auto-generate a secure whsec_ key" 
+                [value]="newWebhookSecret()" 
+                (input)="newWebhookSecret.set($any($event.target).value)" />
+              <span class="field-hint">Used to compute the HMAC-SHA256 signature in the <code>X-ProleadFile-Signature</code> header.</span>
+            </div>
+
+            <!-- Subscribed Events -->
+            <div class="form-group">
+              <label class="form-label">Subscribed Storage Events</label>
+              <div class="events-checkbox-grid">
+                @for (ev of availableEvents; track ev.id) {
+                  <div 
+                    class="event-check-card" 
+                    [class.selected]="selectedEvents().has(ev.id)" 
+                    (click)="toggleEventSelection(ev.id)">
+                    <div class="check-box-indicator">
+                      <span *ngIf="selectedEvents().has(ev.id)">✓</span>
+                    </div>
+                    <div class="check-info">
+                      <span class="event-check-name font-mono">{{ ev.name }}</span>
+                      <span class="event-check-desc">{{ ev.desc }}</span>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" (click)="showNewWebhookModal.set(false)">Cancel</button>
+            <button type="submit" class="btn btn-primary" [disabled]="isSubmitting()">
+              {{ isSubmitting() ? 'Registering...' : 'Register Webhook' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: Test Ping Live Result -->
+  @if (testResult(); as res) {
+    <div class="modal-backdrop" (click)="testResult.set(null)">
+      <div class="modal-card modal-lg animate-scale-up" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <div class="icon-circle-amber">
+              <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+            </div>
+            <div>
+              <h3>Webhook Verification Test Ping</h3>
+              <p class="modal-subtitle">Synthetic payload dispatched and verified with target endpoint.</p>
+            </div>
+          </div>
+          <button class="close-btn" (click)="testResult.set(null)">✕</button>
+        </div>
+
+        <div class="test-result-body">
+          <!-- Summary Banner -->
+          <div class="result-banner" [class.success]="res.success" [class.error]="!res.success">
+            <div class="banner-status">
+              <span class="banner-badge font-mono">{{ res.statusCode || 'NO RESPONSE' }}</span>
+              <span class="banner-text">{{ res.success ? 'Delivery Succeeded' : (res.error || 'Delivery Failed') }}</span>
+            </div>
+            <div class="banner-meta font-mono">
+              <span>Latency: <strong>{{ res.durationMs }}ms</strong></span>
+            </div>
+          </div>
+
+          <!-- Signature Header -->
+          <div class="detail-box">
+            <div class="detail-header">
+              <span>Signature Header Dispatched</span>
+              <button class="copy-btn-sm" (click)="copyText(res.signature, 'Signature copied!')">Copy</button>
+            </div>
+            <pre class="code-snippet font-mono"><code>X-ProleadFile-Signature: {{ res.signature }}
+X-ProleadFile-Event: webhook.test
+X-ProleadFile-Delivery: {{ res.deliveryId }}</code></pre>
+          </div>
+
+          <!-- Dispatched Request Payload -->
+          <div class="detail-box">
+            <div class="detail-header">
+              <span>Dispatched Request Body (JSON)</span>
+              <button class="copy-btn-sm" (click)="copyText(res.requestBody, 'Request body copied!')">Copy</button>
+            </div>
+            <pre class="code-snippet font-mono"><code>{{ res.requestBody }}</code></pre>
+          </div>
+
+          <!-- Server Response Body -->
+          <div class="detail-box">
+            <div class="detail-header">
+              <span>Target Server Response Body</span>
+            </div>
+            <pre class="code-snippet font-mono"><code>{{ res.responseBody || '(Empty response body)' }}</code></pre>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="testResult.set(null)">Close</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: Delivery History Logs -->
+  @if (historyTargetWebhook(); as targetWh) {
+    <div class="modal-backdrop" (click)="historyTargetWebhook.set(null)">
+      <div class="modal-card modal-xl animate-scale-up" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <div class="icon-circle-indigo">
+              <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            </div>
+            <div>
+              <h3>Delivery History: {{ targetWh.name || targetWh.url }}</h3>
+              <p class="modal-subtitle">Real-time audit log of all webhook dispatches, status codes, and payload deliveries.</p>
+            </div>
+          </div>
+          <button class="close-btn" (click)="historyTargetWebhook.set(null)">✕</button>
+        </div>
+
+        <div class="history-layout">
+          <!-- Deliveries List -->
+          <div class="history-list-panel">
+            @if (isLoadingDeliveries()) {
+              <div class="history-loading">Loading delivery logs...</div>
+            } @else if (deliveries().length === 0) {
+              <div class="history-empty">No delivery logs recorded yet for this webhook. Send a test ping to verify.</div>
+            } @else {
+              @for (del of deliveries(); track del.id) {
+                <div 
+                  class="history-item" 
+                  [class.selected]="selectedDelivery()?.id === del.id" 
+                  (click)="selectedDelivery.set(del)">
+                  <div class="history-item-top">
+                    <span class="delivery-status-pill" [class.success]="del.success" [class.error]="!del.success">
+                      {{ del.statusCode || 'ERR' }}
+                    </span>
+                    <span class="delivery-event font-mono">{{ del.event }}</span>
+                  </div>
+                  <div class="history-item-bottom font-mono">
+                    <span>{{ del.durationMs }}ms</span>
+                    <span>{{ del.createdAt | date:'shortTime' }}</span>
+                  </div>
+                </div>
+              }
+            }
+          </div>
+
+          <!-- Delivery Details Inspector -->
+          <div class="history-inspector-panel">
+            @if (selectedDelivery(); as sel) {
+              <div class="inspector-header">
+                <div class="inspector-title">
+                  <span class="delivery-status-pill lg" [class.success]="sel.success" [class.error]="!sel.success">
+                    HTTP {{ sel.statusCode }}
+                  </span>
+                  <span class="font-mono text-bold">{{ sel.event }}</span>
+                  <span class="text-muted font-mono">{{ sel.durationMs }}ms latency</span>
+                </div>
+                <button class="btn btn-sm btn-primary" (click)="redeliver(sel)">
+                  <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                  <span>Re-deliver Payload</span>
+                </button>
+              </div>
+
+              <div class="inspector-section">
+                <label class="inspector-label">Timestamp</label>
+                <div class="inspector-val font-mono">{{ sel.createdAt | date:'medium' }} (Delivery ID: {{ sel.id }})</div>
+              </div>
+
+              <div class="inspector-section">
+                <label class="inspector-label">Request Body (JSON)</label>
+                <pre class="inspector-code font-mono"><code>{{ sel.requestBody }}</code></pre>
+              </div>
+
+              <div class="inspector-section">
+                <label class="inspector-label">Target Response Body</label>
+                <pre class="inspector-code font-mono"><code>{{ sel.responseBody || (sel.error ? 'Error: ' + sel.error : '(No response body)') }}</code></pre>
+              </div>
+            } @else {
+              <div class="inspector-empty">Select a delivery attempt on the left to inspect payloads.</div>
+            }
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="historyTargetWebhook.set(null)">Close</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: HMAC Signature Verification Snippets -->
+  @if (verifySnippetTarget(); as verifyWh) {
+    <div class="modal-backdrop" (click)="verifySnippetTarget.set(null)">
+      <div class="modal-card modal-lg animate-scale-up" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <div class="icon-circle-indigo">
+              <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+            </div>
+            <div>
+              <h3>Verify Webhook Signatures</h3>
+              <p class="modal-subtitle">Code snippets to validate the <code>X-ProleadFile-Signature</code> header on your receiver microservice.</p>
+            </div>
+          </div>
+          <button class="close-btn" (click)="verifySnippetTarget.set(null)">✕</button>
+        </div>
+
+        <!-- Language Tabs -->
+        <div class="verify-lang-tabs">
+          <button class="verify-tab" [class.active]="activeVerifyLang() === 'node'" (click)="activeVerifyLang.set('node')">Node.js (Express)</button>
+          <button class="verify-tab" [class.active]="activeVerifyLang() === 'go'" (click)="activeVerifyLang.set('go')">Go</button>
+          <button class="verify-tab" [class.active]="activeVerifyLang() === 'python'" (click)="activeVerifyLang.set('python')">Python (Flask / FastAPI)</button>
+          <button class="verify-tab" [class.active]="activeVerifyLang() === 'php'" (click)="activeVerifyLang.set('php')">PHP</button>
+        </div>
+
+        <div class="snippet-code-box">
+          <pre class="font-mono"><code>{{ getVerifySnippetCode() }}</code></pre>
+        </div>
+
+        <div class="modal-footer">
+          <span class="footer-meta font-mono">Secret: {{ verifyWh.secret || 'Auto-generated' }}</span>
+          <button class="btn btn-primary btn-sm" (click)="copyText(getVerifySnippetCode(), 'Verification code copied!')">Copy Code Snippet</button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

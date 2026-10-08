@@ -1,0 +1,93 @@
+<header class="navbar">
+  <!-- Left Side: Breadcrumb & Workspace context -->
+  <div class="navbar-left">
+    <div class="breadcrumb">
+      <span class="brand-sub">Prolead Cloud</span>
+      <span class="breadcrumb-slash">/</span>
+      <div class="project-pill">
+        <svg class="svg-icon svg-icon-xs project-pill-icon" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+        <span class="project-pill-name">{{ currentProject()?.name || 'Default Project' }}</span>
+      </div>
+      <span class="badge-env">Production</span>
+    </div>
+  </div>
+
+  <!-- Right Side: Status, Theme Toggle, Shortcuts & Profile -->
+  <div class="navbar-right">
+    <!-- Live Node Status Indicator -->
+    <div class="status-indicator" title="SSE Event Bus & Content-Addressable Storage Engine Active">
+      <span class="pulse-dot"></span>
+      <span class="status-text">Node Online</span>
+    </div>
+
+    <!-- Quick Shortcuts -->
+    <a routerLink="/features" routerLinkActive="active-nav" class="nav-shortcut-btn" title="50 Enterprise Features">
+      <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+      <span>Features</span>
+    </a>
+
+    <a routerLink="/operations" routerLinkActive="active-nav" class="nav-shortcut-btn" title="Platform Operations & Health">
+      <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+      <span>Operations</span>
+    </a>
+
+    <div class="nav-divider"></div>
+
+    <!-- Theme Toggle Switch (Dark / Light) -->
+    <button class="theme-toggle-btn" (click)="toggleTheme()" [title]="'Switch to ' + (themeService.theme() === 'dark' ? 'Light' : 'Dark') + ' Mode'">
+      @if (themeService.theme() === 'dark') {
+        <!-- Sun Icon for switching to light -->
+        <svg class="svg-icon svg-icon-sm theme-icon sun" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+      } @else {
+        <!-- Moon Icon for switching to dark -->
+        <svg class="svg-icon svg-icon-sm theme-icon moon" viewBox="0 0 24 24">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+      }
+    </button>
+
+    <!-- User Profile Dropdown -->
+    <div class="user-menu-wrapper">
+      <button class="user-menu-btn" (click)="showUserMenu.set(!showUserMenu())">
+        <div class="user-avatar-small">
+          <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        </div>
+        <span class="username-label">{{ currentUser()?.username || 'Superuser' }}</span>
+        <svg class="svg-icon svg-icon-xs dropdown-caret" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </button>
+
+      @if (showUserMenu()) {
+        <div class="user-dropdown-card" (click)="$event.stopPropagation()">
+          <div class="dropdown-user-header">
+            <strong>{{ currentUser()?.username || 'admin' }}</strong>
+            <span class="role-badge">Superuser Access</span>
+          </div>
+          <div class="user-dropdown-divider"></div>
+          <a routerLink="/projects" class="user-dropdown-link" (click)="showUserMenu.set(false)">
+            <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+            <span>All Workspaces</span>
+          </a>
+          <a [routerLink]="['/projects', currentProject()?.id || 'p-default', 'keys']" class="user-dropdown-link" (click)="showUserMenu.set(false)">
+            <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="m21 2-2 2m-1.5 1.5L14 9l-1.5-1.5L9.5 10.5 8 9l-3 3 2 2-4 4 3 3 4-4 2 2 1.5-1.5-1.5-1.5L14.5 9.5 16 11l3.5-3.5L21 2z"></path></svg>
+            <span>API Access Keys</span>
+          </a>
+          <div class="user-dropdown-divider"></div>
+          <button class="user-dropdown-logout" (click)="logout()">
+            <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            <span>Sign Out</span>
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+</header>

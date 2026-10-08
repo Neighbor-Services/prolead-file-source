@@ -1,0 +1,440 @@
+<div class="projects-layout">
+  <!-- Top Navigation Bar -->
+  <header class="projects-header">
+    <div class="header-left">
+      <div class="logo">
+        <svg class="svg-icon svg-icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+        </svg>
+      </div>
+      <div class="brand-info">
+        <div class="app-title-row">
+          <span class="app-title">Prolead File</span>
+          <span class="version-tag">v2.4 Core</span>
+        </div>
+        <span class="app-sub">High-Performance Object Storage & CAS Appliance</span>
+      </div>
+    </div>
+
+    <div class="header-center">
+      <div class="cluster-status-pill">
+        <span class="status-dot"></span>
+        <span class="status-text">CAS Storage Engine Active &bull; AES-256-GCM</span>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <button class="btn-theme-toggle" (click)="toggleTheme()" [title]="theme() === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'">
+        @if (theme() === 'dark') {
+          <svg class="svg-icon svg-icon-sm sun-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+        } @else {
+          <svg class="svg-icon svg-icon-sm moon-icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        }
+      </button>
+
+      <div class="user-pill">
+        <div class="user-avatar">
+          <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        </div>
+        <span class="username">{{ currentUser()?.username || 'master-admin' }}</span>
+        <span class="badge-admin">Admin</span>
+      </div>
+      <button class="btn btn-signout" (click)="logout()" title="Sign Out">
+        <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+        <span>Sign Out</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="projects-content">
+    
+    <!-- Hero Header Banner -->
+    <div class="hero-section">
+      <div class="hero-text">
+        <div class="badge-pill">Enterprise Storage Partitions</div>
+        <h1>Workspaces &amp; Storage Projects</h1>
+        <p class="subtitle">
+          Manage isolated tenant partitions, provision scoped API keys, monitor CAS deduplication, and organize physical disk storage volumes.
+        </p>
+      </div>
+
+      <div class="hero-actions">
+        <button class="btn btn-create" (click)="showNewModal.set(true)">
+          <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <span>Create Workspace</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Live Telemetry KPI Metrics -->
+    @if (stats()) {
+      <div class="stats-overview">
+        <div class="stat-box">
+          <div class="stat-icon-wrapper purple">
+            <svg class="svg-icon" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+          </div>
+          <div class="stat-content">
+            <div class="stat-num">{{ projects().length }}</div>
+            <div class="stat-label">Active Workspaces</div>
+          </div>
+          <div class="stat-badge">Multi-tenant</div>
+        </div>
+
+        <div class="stat-box">
+          <div class="stat-icon-wrapper blue">
+            <svg class="svg-icon" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+          </div>
+          <div class="stat-content">
+            <div class="stat-num">{{ stats()?.totalBuckets || 1 }}</div>
+            <div class="stat-label">Storage Buckets</div>
+          </div>
+          <div class="stat-badge">Allocated</div>
+        </div>
+
+        <div class="stat-box">
+          <div class="stat-icon-wrapper amber">
+            <svg class="svg-icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          </div>
+          <div class="stat-content">
+            <div class="stat-num">{{ stats()?.totalFiles || 0 }}</div>
+            <div class="stat-label">Total CAS Objects</div>
+          </div>
+          <div class="stat-badge">SHA-256 Indexed</div>
+        </div>
+
+        <div class="stat-box">
+          <div class="stat-icon-wrapper green">
+            <svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          </div>
+          <div class="stat-content">
+            <div class="stat-num">{{ formatBytes(stats()?.totalBytes || 0) }}</div>
+            <div class="stat-label">Total Stored Volume</div>
+          </div>
+          <div class="stat-badge success">CAS Deduplicated</div>
+        </div>
+      </div>
+    }
+
+    <!-- Toolbar & Search Controls -->
+    <div class="toolbar-row">
+      <div class="search-bar-wrapper">
+        <svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input 
+          type="text" 
+          placeholder="Search workspaces by name, slug, ID or description..." 
+          [ngModel]="searchQuery()" 
+          (ngModelChange)="searchQuery.set($event)"
+          class="search-input"
+        />
+        @if (searchQuery()) {
+          <button class="clear-search-btn" (click)="searchQuery.set('')">
+            <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        }
+      </div>
+
+      <div class="toolbar-right">
+        <div class="view-toggle">
+          <button class="toggle-btn" [class.active]="viewMode() === 'grid'" (click)="viewMode.set('grid')" title="Grid View">
+            <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+          </button>
+          <button class="toggle-btn" [class.active]="viewMode() === 'list'" (click)="viewMode.set('list')" title="List View">
+            <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+          </button>
+        </div>
+
+        <button class="btn btn-refresh" (click)="loadProjects(); loadStats()" title="Refresh">
+          <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Empty Filter State -->
+    @if (filteredProjects.length === 0) {
+      <div class="empty-state-card">
+        <div class="empty-icon-circle">
+          <svg class="svg-icon svg-icon-lg" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        </div>
+        <h3>No Workspaces Found</h3>
+        <p>No storage projects match your query "{{ searchQuery() }}". Try clearing your search or create a new workspace.</p>
+        <button class="btn btn-primary" (click)="searchQuery.set('')">Clear Search Filter</button>
+      </div>
+    }
+
+    <!-- GRID VIEW -->
+    @if (viewMode() === 'grid') {
+      <div class="projects-grid">
+        @for (p of filteredProjects; track p.id) {
+          <div class="project-card" (click)="openProject(p)">
+            <!-- Card Header -->
+            <div class="project-card-header">
+              <div class="project-avatar-badge">
+                <svg class="svg-icon svg-icon-md" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+              </div>
+              <div class="project-title-meta">
+                <div class="project-name-row">
+                  <h3>{{ p.name }}</h3>
+                  @if (p.id === 'p-default' || p.slug === 'default') {
+                    <span class="pill-primary-default">Default Root</span>
+                  }
+                </div>
+                <code class="project-id-chip">ID: {{ p.id }}</code>
+              </div>
+
+              @if (p.id !== 'p-default' && p.slug !== 'default') {
+                <button class="icon-btn-danger" (click)="deleteProject(p, $event)" title="Delete Workspace">
+                  <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                </button>
+              }
+            </div>
+
+            <!-- Description -->
+            <p class="project-desc">{{ p.description || 'Internal partitioned storage volume for microservices, binary payloads, and static assets.' }}</p>
+
+            <!-- Storage Health Mini Bar -->
+            <div class="storage-indicator-bar">
+              <div class="storage-bar-label">
+                <span>Storage Allocation</span>
+                <span class="quota-val">Uncapped Volume</span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill" style="width: 15%;"></div>
+              </div>
+            </div>
+
+            <!-- Action Chips / Shortcuts -->
+            <div class="project-shortcuts" (click)="$event.stopPropagation()">
+              <button class="shortcut-chip" (click)="openProjectKeys(p, $event)" title="Manage API Keys">
+                <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="m21 2-2 2m-1.5 1.5L14 9l-1.5-1.5L9.5 10.5 8 9l-3 3 2 2-4 4 3 3 4-4 2 2 1.5-1.5-1.5-1.5L14.5 9.5 16 11l3.5-3.5L21 2z"></path></svg>
+                <span>API Keys</span>
+              </button>
+              <button class="shortcut-chip" (click)="openProjectWebhooks(p, $event)" title="Configure Webhooks">
+                <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                <span>Webhooks</span>
+              </button>
+            </div>
+
+            <!-- Card Footer -->
+            <div class="project-footer">
+              <span class="created-at">Created {{ p.createdAt | date:'mediumDate' }}</span>
+              <span class="open-link">
+                <span>Explore Storage</span>
+                <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+              </span>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- LIST VIEW -->
+    @if (viewMode() === 'list') {
+      <div class="card-table">
+        <table class="projects-table">
+          <thead>
+            <tr>
+              <th>Workspace Name</th>
+              <th>Identifier / Slug</th>
+              <th>Description</th>
+              <th>Created</th>
+              <th>Direct Shortcuts</th>
+              <th style="text-align: right;">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of filteredProjects; track p.id) {
+              <tr class="clickable-row" (click)="openProject(p)">
+                <td>
+                  <div class="table-name-cell">
+                    <div class="table-avatar">
+                      <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                    </div>
+                    <strong>{{ p.name }}</strong>
+                    @if (p.id === 'p-default' || p.slug === 'default') {
+                      <span class="pill-primary-default">Default</span>
+                    }
+                  </div>
+                </td>
+                <td><code>{{ p.id }}</code></td>
+                <td class="desc-cell">{{ p.description || 'Internal departmental storage partition.' }}</td>
+                <td class="date-cell">{{ p.createdAt | date:'mediumDate' }}</td>
+                <td (click)="$event.stopPropagation()">
+                  <div class="table-shortcuts">
+                    <button class="shortcut-chip-sm" (click)="openProjectKeys(p, $event)">API Keys</button>
+                    <button class="shortcut-chip-sm" (click)="openProjectWebhooks(p, $event)">Webhooks</button>
+                  </div>
+                </td>
+                <td style="text-align: right;">
+                  <button class="btn btn-sm btn-primary" (click)="openProject(p)">Open &rarr;</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+
+  </main>
+
+  <!-- MODAL: Create New Project Wizard -->
+  @if (showNewModal()) {
+    <div class="modal-backdrop" (click)="showNewModal.set(false)">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-header-left">
+            <div class="modal-icon purple">
+              <svg class="svg-icon svg-icon-md" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+            </div>
+            <div>
+              <h3>Provision New Workspace</h3>
+              <p class="modal-sub">Create an isolated storage partition with scoped credentials and quotas.</p>
+            </div>
+          </div>
+          <button class="modal-close" (click)="showNewModal.set(false)">
+            <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+
+        <form (ngSubmit)="createProject()">
+          <div class="modal-body">
+            <div class="form-group">
+              <label>Workspace / Project Name <span class="required">*</span></label>
+              <input 
+                type="text" 
+                class="form-control" 
+                placeholder="e.g. Media Production, User Uploads, Mobile App" 
+                [ngModel]="newProjName()" 
+                (ngModelChange)="newProjName.set($event)" 
+                name="projName" 
+                required 
+                autofocus
+              />
+              <span class="input-hint">A unique identifier slug will be generated automatically.</span>
+            </div>
+
+            <div class="form-group">
+              <label>Description &amp; Purpose</label>
+              <textarea 
+                class="form-control" 
+                rows="2" 
+                placeholder="Optional description of the data stored in this workspace..." 
+                [ngModel]="newProjDesc()" 
+                (ngModelChange)="newProjDesc.set($event)" 
+                name="projDesc"
+              ></textarea>
+            </div>
+
+            <div class="form-divider"></div>
+
+            <div class="provision-card">
+              <div class="provision-header">
+                <input 
+                  type="checkbox" 
+                  id="genKeyCheck" 
+                  [ngModel]="autoGenerateKey()" 
+                  (ngModelChange)="autoGenerateKey.set($event)" 
+                  name="genKey" 
+                  class="custom-checkbox"
+                />
+                <label for="genKeyCheck" class="provision-title">
+                  <strong>Auto-provision Initial API Key</strong>
+                  <span>Create a high-entropy secret token scoped exclusively to this project.</span>
+                </label>
+              </div>
+
+              @if (autoGenerateKey()) {
+                <div class="role-selector-row">
+                  <label class="role-label">Permission Role:</label>
+                  <div class="role-options">
+                    <label class="role-chip" [class.selected]="keyRole() === 'read-write'">
+                      <input type="radio" value="read-write" [ngModel]="keyRole()" (ngModelChange)="keyRole.set($event)" name="roleRadio" />
+                      <span>Read / Write (Standard)</span>
+                    </label>
+                    <label class="role-chip" [class.selected]="keyRole() === 'read-only'">
+                      <input type="radio" value="read-only" [ngModel]="keyRole()" (ngModelChange)="keyRole.set($event)" name="roleRadio" />
+                      <span>Read-Only (Public CDN)</span>
+                    </label>
+                    <label class="role-chip" [class.selected]="keyRole() === 'admin'">
+                      <input type="radio" value="admin" [ngModel]="keyRole()" (ngModelChange)="keyRole.set($event)" name="roleRadio" />
+                      <span>Full Admin</span>
+                    </label>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" (click)="showNewModal.set(false)">Cancel</button>
+            <button type="submit" class="btn btn-primary" [disabled]="!newProjName().trim() || isSubmitting()">
+              @if (isSubmitting()) {
+                <span>Provisioning Workspace...</span>
+              } @else {
+                <span>Provision Workspace &rarr;</span>
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: Success & Provisioned Credentials -->
+  @if (showSuccessModal()) {
+    <div class="modal-backdrop" (click)="showSuccessModal.set(false)">
+      <div class="modal-card success-card" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-header-left">
+            <div class="modal-icon green">
+              <svg class="svg-icon svg-icon-md" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            </div>
+            <div>
+              <h3>Workspace Provisioned!</h3>
+              <p class="modal-sub">"{{ createdProject()?.name }}" is live and ready for object storage.</p>
+            </div>
+          </div>
+          <button class="modal-close" (click)="showSuccessModal.set(false)">
+            <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <div class="credential-box">
+            <div class="cred-row">
+              <span class="cred-label">Project ID:</span>
+              <div class="cred-val-copy">
+                <code>{{ createdProject()?.id }}</code>
+                <button class="copy-btn" (click)="copyText(createdProject()?.id || '', 'id')">
+                  {{ copyFeedback() === 'id' ? 'Copied!' : 'Copy' }}
+                </button>
+              </div>
+            </div>
+
+            @if (createdApiKey()) {
+              <div class="cred-row">
+                <span class="cred-label">API Secret Key:</span>
+                <div class="cred-val-copy">
+                  <code class="secret-token">{{ createdApiKey()?.key }}</code>
+                  <button class="copy-btn primary" (click)="copyText(createdApiKey()?.key || '', 'key')">
+                    {{ copyFeedback() === 'key' ? 'Copied!' : 'Copy Key' }}
+                  </button>
+                </div>
+              </div>
+              <div class="warning-callout">
+                <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                <span>Save this API key now. You will not be able to retrieve the full unhashed secret again.</span>
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-primary" (click)="showSuccessModal.set(false)">
+            Open Storage Explorer &rarr;
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

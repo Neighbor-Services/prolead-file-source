@@ -1,0 +1,384 @@
+<div class="keys-page animate-fade-in">
+  <!-- Page Header -->
+  <div class="page-title-row">
+    <div>
+      <div class="header-badge-row">
+        <span class="badge-tag">AUTHENTICATION</span>
+        <span class="badge-project-id">Project: {{ projectId() }}</span>
+      </div>
+      <h1>Multi-Tenant API Access Keys</h1>
+      <p class="subtitle">Generate, scope, rate-limit, and audit secure credentials for backend microservices, mobile apps, and frontend SDKs.</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-primary btn-glow" (click)="openCreateKeyModal()">
+        <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        <span>Generate Scoped Key</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- KPI Metrics Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon-wrap icon-primary">
+        <svg class="svg-icon" viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+      </div>
+      <div class="stat-content">
+        <span class="stat-label">Total API Keys</span>
+        <h3 class="stat-value">{{ totalKeysCount() }}</h3>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon-wrap icon-success">
+        <svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+      </div>
+      <div class="stat-content">
+        <span class="stat-label">Active Credentials</span>
+        <h3 class="stat-value">{{ activeKeysCount() }}</h3>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon-wrap icon-info">
+        <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+      </div>
+      <div class="stat-content">
+        <span class="stat-label">API Requests Tracked</span>
+        <h3 class="stat-value">{{ totalRequestsCount() | number }}</h3>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters & Search Toolbar -->
+  <div class="toolbar-card">
+    <div class="search-box">
+      <svg class="svg-icon search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      <input 
+        type="text" 
+        class="search-input" 
+        placeholder="Filter by key name, role, bucket scope..." 
+        [ngModel]="searchQuery()" 
+        (ngModelChange)="searchQuery.set($event)" />
+    </div>
+
+    <div class="filter-pills">
+      <button class="pill-btn" [class.active]="statusFilter() === 'all'" (click)="statusFilter.set('all')">
+        All ({{ totalKeysCount() }})
+      </button>
+      <button class="pill-btn" [class.active]="statusFilter() === 'active'" (click)="statusFilter.set('active')">
+        Active ({{ activeKeysCount() }})
+      </button>
+      <button class="pill-btn" [class.active]="statusFilter() === 'revoked'" (click)="statusFilter.set('revoked')">
+        Revoked ({{ totalKeysCount() - activeKeysCount() }})
+      </button>
+    </div>
+  </div>
+
+  <!-- Credentials Table -->
+  <div class="card-table">
+    <table class="keys-table">
+      <thead>
+        <tr>
+          <th>Key / Client App</th>
+          <th>Secret Token</th>
+          <th>Role / Scope</th>
+          <th>Allowed Buckets</th>
+          <th>Rate Limit</th>
+          <th>Telemetry</th>
+          <th>Status</th>
+          <th style="text-align: right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (k of filteredKeys(); track k.id) {
+          <tr [class.row-revoked]="k.revoked">
+            <td>
+              <div class="key-name-cell">
+                <span class="key-display-name">{{ k.name || 'Unnamed Key' }}</span>
+                <span class="key-meta-id font-mono">ID: {{ k.id }}</span>
+              </div>
+            </td>
+            <td>
+              <div class="key-secret-box">
+                @if (revealedKeys().has(k.id)) {
+                  <code class="font-mono text-secret">{{ k.key }}</code>
+                } @else {
+                  <code class="font-mono text-masked">{{ k.key.substring(0, 10) }}••••••••••••{{ k.key.substring(k.key.length - 4) }}</code>
+                }
+                <div class="secret-actions">
+                  <button class="icon-btn-xs" (click)="toggleRevealKey(k.id)" [title]="revealedKeys().has(k.id) ? 'Mask Secret' : 'Reveal Secret'">
+                    @if (revealedKeys().has(k.id)) {
+                      <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                    } @else {
+                      <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    }
+                  </button>
+                  <button class="icon-btn-xs" (click)="copyText(k.key, 'API Secret copied to clipboard!')" title="Copy Secret Token">
+                    <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  </button>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="badge-role" [ngClass]="'role-' + k.role">
+                {{ k.role }}
+              </span>
+            </td>
+            <td>
+              <div class="bucket-tags-wrap">
+                @if (!k.allowedBuckets || k.allowedBuckets.length === 0) {
+                  <span class="badge-scope-all">All Buckets (*)</span>
+                } @else {
+                  @for (b of k.allowedBuckets; track b) {
+                    <span class="badge-scope-item">{{ b }}</span>
+                  }
+                }
+              </div>
+            </td>
+            <td>
+              <span class="rate-limit-badge">
+                {{ k.rateLimitReqPerMin ? (k.rateLimitReqPerMin + ' req/min') : 'Unlimited' }}
+              </span>
+            </td>
+            <td>
+              <div class="telemetry-cell">
+                <span class="req-count font-mono">{{ (k.requestCount || 0) | number }} reqs</span>
+                <span class="last-used-label">{{ k.lastUsedAt ? (k.lastUsedAt | date:'short') : 'Never used' }}</span>
+              </div>
+            </td>
+            <td>
+              <span class="status-pill" [class.status-active]="!k.revoked" [class.status-revoked]="k.revoked">
+                <span class="status-dot"></span>
+                <span>{{ k.revoked ? 'REVOKED' : 'ACTIVE' }}</span>
+              </span>
+            </td>
+            <td style="text-align: right;">
+              <div class="row-actions">
+                <button class="btn btn-secondary btn-xs" (click)="openSnippetModal(k)" title="Code Snippets & SDKs">
+                  <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                  <span>Code</span>
+                </button>
+                <button class="icon-btn-xs" (click)="rotateKey(k)" title="Rotate Secret Token">
+                  <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                </button>
+                <button class="icon-btn-xs" [class.text-warning]="!k.revoked" [class.text-success]="k.revoked" (click)="toggleRevoke(k)" [title]="k.revoked ? 'Re-activate Key' : 'Revoke Key'">
+                  @if (k.revoked) {
+                    <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                  } @else {
+                    <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+                  }
+                </button>
+                <button class="icon-btn-xs danger" (click)="deleteKey(k)" title="Delete Key Permanently">
+                  <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        }
+
+        @if (filteredKeys().length === 0) {
+          <tr>
+            <td colspan="8" class="empty-state-cell">
+              <div class="empty-box">
+                <svg class="svg-icon svg-icon-xl" viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+                <h4>No API Credentials Found</h4>
+                <p>Generate scoped API keys to authenticate mobile clients, microservices, and backend workers.</p>
+                <button class="btn btn-primary btn-sm" (click)="openCreateKeyModal()">Generate Key</button>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- MODAL: Generate Scoped Key -->
+  @if (showNewKeyModal()) {
+    <div class="modal-backdrop" (click)="showNewKeyModal.set(false)">
+      <div class="modal-card modal-md" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <div class="icon-circle-indigo">
+              <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+            </div>
+            <div>
+              <h3>Generate Scoped API Key</h3>
+              <p class="modal-subtitle">Configure scoped permissions and bucket boundaries.</p>
+            </div>
+          </div>
+          <button class="close-btn" (click)="showNewKeyModal.set(false)">✕</button>
+        </div>
+
+        <form (submit)="createKey(); $event.preventDefault()">
+          <div class="form-group">
+            <label>Key Name / Client Application <span class="text-danger">*</span></label>
+            <input 
+              type="text" 
+              class="form-control" 
+              placeholder="e.g. Production iOS Mobile App, Billing Worker" 
+              [value]="newKeyName()" 
+              (input)="newKeyName.set($any($event.target).value)" 
+              required />
+          </div>
+
+          <div class="form-group">
+            <label>Access Role & Permissions</label>
+            <select 
+              class="form-control" 
+              [value]="newKeyRole()" 
+              (change)="newKeyRole.set($any($event.target).value)">
+              <option value="read-write">Read & Write (Upload, Download, List Objects)</option>
+              <option value="read-only">Read-Only (Download & Public CDN Access Only)</option>
+              <option value="admin">Full Admin (Bucket Management, Lifecycle, Keys & Ops)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Allowed Bucket Boundaries</label>
+            <div class="bucket-picker-box">
+              <label class="checkbox-label">
+                <input 
+                  type="checkbox" 
+                  [checked]="allowAllBuckets()" 
+                  (change)="setAllowAllBuckets($any($event.target).checked)" />
+                <span>All Current and Future Buckets (<code>*</code>)</span>
+              </label>
+
+              @if (!allowAllBuckets()) {
+                <div class="bucket-checkboxes-grid">
+                  @for (b of availableBuckets(); track b.name) {
+                    <label class="checkbox-label sub-checkbox">
+                      <input 
+                        type="checkbox" 
+                        [checked]="selectedBuckets().has(b.name)" 
+                        (change)="toggleBucketSelection(b.name)" />
+                      <span>{{ b.name }}</span>
+                    </label>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group" style="flex: 1;">
+              <label>Expiration Period</label>
+              <select 
+                class="form-control" 
+                [value]="newKeyExpiresDays()" 
+                (change)="newKeyExpiresDays.set(+$any($event.target).value)">
+                <option [value]="0">Never Expires</option>
+                <option [value]="30">30 Days</option>
+                <option [value]="90">90 Days</option>
+                <option [value]="365">1 Year</option>
+              </select>
+            </div>
+
+            <div class="form-group" style="flex: 1;">
+              <label>Rate Limit Quota</label>
+              <select 
+                class="form-control" 
+                [value]="newKeyRateLimit()" 
+                (change)="newKeyRateLimit.set(+$any($event.target).value)">
+                <option [value]="0">Unlimited (Default)</option>
+                <option [value]="60">60 req / min</option>
+                <option [value]="600">600 req / min</option>
+                <option [value]="3000">3,000 req / min</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" (click)="showNewKeyModal.set(false)">Cancel</button>
+            <button type="submit" class="btn btn-primary">Generate API Key</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: Newly Created Secret Reveal -->
+  @if (newlyCreatedKey(); as key) {
+    <div class="modal-backdrop" (click)="newlyCreatedKey.set(null)">
+      <div class="modal-card modal-md animate-scale-up" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <div class="icon-circle-success">
+              <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </div>
+            <div>
+              <h3>API Key Generated Successfully</h3>
+              <p class="modal-subtitle">{{ key.name }} is now ready for production use.</p>
+            </div>
+          </div>
+          <button class="close-btn" (click)="newlyCreatedKey.set(null)">✕</button>
+        </div>
+
+        <div class="reveal-alert-box">
+          <svg class="svg-icon svg-icon-sm text-warning" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          <p>Please copy your API key secret now. <strong>For security, this raw token will never be displayed again in plaintext.</strong></p>
+        </div>
+
+        <div class="form-group">
+          <label>API Key Secret Token</label>
+          <div class="copy-input-group">
+            <input type="text" class="form-control font-mono" readonly [value]="key.key" />
+            <button class="btn btn-primary" (click)="copyText(key.key, 'API Key copied to clipboard!')">Copy Secret</button>
+          </div>
+        </div>
+
+        <div class="quickstart-preview">
+          <span class="preview-label">Quick cURL Authentication Test:</span>
+          <pre><code>curl -H "Authorization: Bearer {{ key.key }}" {{ getBaseApiUrl() }}/api/v1/b/default/o</code></pre>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-primary" (click)="newlyCreatedKey.set(null)">I Have Saved My Secret</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: Code Examples & SDK Quickstart -->
+  @if (snippetTargetKey(); as key) {
+    <div class="modal-backdrop" (click)="snippetTargetKey.set(null)">
+      <div class="modal-card modal-lg animate-scale-up" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <div class="icon-circle-indigo">
+              <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+            </div>
+            <div>
+              <h3>SDK Quickstart: {{ key.name }}</h3>
+              <p class="modal-subtitle">Integrate Prolead File using official client SDKs and S3 compatible tools.</p>
+            </div>
+          </div>
+          <button class="close-btn" (click)="snippetTargetKey.set(null)">✕</button>
+        </div>
+
+        <!-- Code Tabs -->
+        <div class="snippet-tabs">
+          <button class="snippet-tab" [class.active]="activeSnippetTab() === 'curl'" (click)="activeSnippetTab.set('curl')">cURL / REST</button>
+          <button class="snippet-tab" [class.active]="activeSnippetTab() === 'ts'" (click)="activeSnippetTab.set('ts')">TypeScript / Node</button>
+          <button class="snippet-tab" [class.active]="activeSnippetTab() === 'go'" (click)="activeSnippetTab.set('go')">Go SDK</button>
+          <button class="snippet-tab" [class.active]="activeSnippetTab() === 'python'" (click)="activeSnippetTab.set('python')">Python SDK</button>
+          <button class="snippet-tab" [class.active]="activeSnippetTab() === 'flutter'" (click)="activeSnippetTab.set('flutter')">Flutter / Dart</button>
+          <button class="snippet-tab" [class.active]="activeSnippetTab() === 's3'" (click)="activeSnippetTab.set('s3')">AWS S3 CLI</button>
+        </div>
+
+        <div class="snippet-code-box">
+          <pre><code>{{ getActiveSnippetCode() }}</code></pre>
+        </div>
+
+        <div class="modal-footer">
+          <span class="footer-meta font-mono">Scoped Token: {{ key.keyPrefix || (key.key.length > 14 ? key.key.substring(0, 14) + '...' : key.key) }}</span>
+          <div class="modal-footer-actions">
+            <button class="btn btn-secondary btn-sm" (click)="copyActiveSnippet()">Copy Snippet</button>
+            <button class="btn btn-primary btn-sm" (click)="copyText(key.key, 'Secret Key Copied!')">Copy Key Secret</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>

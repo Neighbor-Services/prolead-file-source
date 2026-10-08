@@ -1,0 +1,492 @@
+<div class="operations-page">
+  <!-- Page Header -->
+  <div class="page-title-row">
+    <div class="title-left">
+      <div class="title-with-pill">
+        <h1>Engine & Background Operations</h1>
+        <span class="live-pill">
+          <span class="pulse-dot"></span>
+          <span>{{ workerStats().activeWorkers }} Active Worker{{ workerStats().activeWorkers === 1 ? '' : 's' }}</span>
+        </span>
+      </div>
+      <p class="subtitle">Real-time background worker pool, asynchronous job queue, CAS deduplication, and system maintenance.</p>
+    </div>
+    <div class="header-right">
+      <span class="uptime-badge font-mono">Uptime: {{ formatUptime(workerStats().uptimeSeconds) }}</span>
+    </div>
+  </div>
+
+  <!-- Status Notification Banner -->
+  @if (operationStatus()) {
+    <div class="status-banner" [class.operating]="isOperating()">
+      <span class="status-icon">
+        @if (isOperating()) {
+          <svg class="svg-icon svg-icon-sm spin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-dashoffset="12"></circle></svg>
+        } @else {
+          <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+        }
+      </span>
+      <span class="status-msg">{{ operationStatus() }}</span>
+    </div>
+  }
+
+  <!-- Main Tabs -->
+  <div class="ops-tabs-nav">
+    <button 
+      class="ops-tab-btn" 
+      [class.active]="activeTab() === 'workers'" 
+      (click)="activeTab.set('workers')">
+      <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+      <span>Background Workers & Queue</span>
+      <span class="tab-badge">{{ workerStats().queueLength }}</span>
+    </button>
+    <button 
+      class="ops-tab-btn" 
+      [class.active]="activeTab() === 'dedup'" 
+      (click)="activeTab.set('dedup')">
+      <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+      <span>CAS Deduplication Engine</span>
+    </button>
+    <button 
+      class="ops-tab-btn" 
+      [class.active]="activeTab() === 'audit'" 
+      (click)="activeTab.set('audit')">
+      <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+      <span>Security & Audit Trail</span>
+    </button>
+    <button 
+      class="ops-tab-btn" 
+      [class.active]="activeTab() === 'gateways'" 
+      (click)="activeTab.set('gateways')">
+      <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line></svg>
+      <span>Gateways & Telemetry</span>
+    </button>
+  </div>
+
+  <!-- TAB 1: Background Workers & Job Engine -->
+  @if (activeTab() === 'workers') {
+    <div class="tab-content animate-fade">
+      <!-- 4 Top KPI Cards -->
+      <div class="worker-kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-icon-box indigo">
+            <svg class="svg-icon" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+          </div>
+          <div class="kpi-info">
+            <span class="kpi-label">Worker Concurrency</span>
+            <div class="kpi-val-row">
+              <span class="kpi-val">{{ workerStats().activeWorkers }} / {{ workerStats().totalWorkers }}</span>
+              <span class="kpi-sub">Threads Active</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon-box amber">
+            <svg class="svg-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+          </div>
+          <div class="kpi-info">
+            <span class="kpi-label">Queue Backlog</span>
+            <div class="kpi-val-row">
+              <span class="kpi-val">{{ workerStats().queueLength }}</span>
+              <span class="kpi-sub">/ {{ workerStats().queueCapacity }} Max Buffer</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon-box success">
+            <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </div>
+          <div class="kpi-info">
+            <span class="kpi-label">Jobs Completed</span>
+            <div class="kpi-val-row">
+              <span class="kpi-val">{{ workerStats().jobsSucceeded | number }}</span>
+              <span class="kpi-sub text-rose" *ngIf="workerStats().jobsFailed > 0">({{ workerStats().jobsFailed }} failed)</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon-box cyan">
+            <svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          </div>
+          <div class="kpi-info">
+            <span class="kpi-label">Throughput & Latency</span>
+            <div class="kpi-val-row">
+              <span class="kpi-val">{{ workerStats().throughputPerMin }} <small>req/min</small></span>
+              <span class="kpi-sub">{{ workerStats().avgDurationMs }}ms avg</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Concurrency Controller Banner -->
+      <div class="scale-banner-card">
+        <div class="scale-info">
+          <h3>Dynamic Worker Pool Scaling</h3>
+          <p>Adjust concurrent background worker goroutines handling async transcoding, deduplication sweeps, and retries.</p>
+        </div>
+        <div class="scale-controls">
+          <span class="scale-label">Concurrency Level:</span>
+          <div class="scale-buttons">
+            <button class="scale-btn" [class.active]="workerStats().totalWorkers === 1" (click)="scaleWorkers(1)">1x</button>
+            <button class="scale-btn" [class.active]="workerStats().totalWorkers === 2" (click)="scaleWorkers(2)">2x</button>
+            <button class="scale-btn" [class.active]="workerStats().totalWorkers === 4" (click)="scaleWorkers(4)">4x (Default)</button>
+            <button class="scale-btn" [class.active]="workerStats().totalWorkers === 8" (click)="scaleWorkers(8)">8x High</button>
+            <button class="scale-btn" [class.active]="workerStats().totalWorkers === 16" (click)="scaleWorkers(16)">16x Turbo</button>
+            <button class="scale-btn" [class.active]="workerStats().totalWorkers === 32" (click)="scaleWorkers(32)">32x Max</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- On-Demand Maintenance Action Triggers -->
+      <div class="section-block">
+        <div class="section-header">
+          <div>
+            <h2>Dispatch Maintenance Workers</h2>
+            <p class="section-sub">Enqueue asynchronous storage, integrity, and optimization tasks to the worker pipeline.</p>
+          </div>
+        </div>
+
+        <div class="trigger-cards-grid">
+          <!-- 1. Integrity Scrub -->
+          <div class="trigger-card">
+            <div class="trigger-card-top">
+              <div class="trigger-icon scrub">
+                <svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+              </div>
+              <div class="trigger-meta">
+                <h4>Bitrot Integrity Scrubber</h4>
+                <p>Verifies physical storage against database SHA-256 hashes.</p>
+              </div>
+            </div>
+            <button class="btn btn-sm btn-primary" [disabled]="isOperating()" (click)="triggerWorkerJob('INTEGRITY_SCRUB', 'Bitrot SHA-256 Scrubber', 'default')">
+              Enqueue Integrity Scrub
+            </button>
+          </div>
+
+          <!-- 2. CAS Deduplication -->
+          <div class="trigger-card">
+            <div class="trigger-card-top">
+              <div class="trigger-icon dedup">
+                <svg class="svg-icon" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+              </div>
+              <div class="trigger-meta">
+                <h4>CAS Deduplication Sweep</h4>
+                <p>Identifies duplicate object payloads and consolidates CAS blocks.</p>
+              </div>
+            </div>
+            <button class="btn btn-sm btn-primary" [disabled]="isOperating()" (click)="triggerWorkerJob('CAS_DEDUP', 'CAS Deduplication Sweep')">
+              Enqueue CAS Dedup
+            </button>
+          </div>
+
+          <!-- 3. Garbage Collection -->
+          <div class="trigger-card">
+            <div class="trigger-card-top">
+              <div class="trigger-icon gc">
+                <svg class="svg-icon" viewBox="0 0 24 24"><path d="M3 6h18m-2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              </div>
+              <div class="trigger-meta">
+                <h4>Orphan Garbage Collector</h4>
+                <p>Purges unreferenced chunks, aborted uploads, and temp files.</p>
+              </div>
+            </div>
+            <button class="btn btn-sm btn-primary" [disabled]="isOperating()" (click)="triggerWorkerJob('GARBAGE_COLLECT', 'Orphan Blob Sweep')">
+              Enqueue Garbage Collector
+            </button>
+          </div>
+
+          <!-- 4. Lifecycle & Trash Purge -->
+          <div class="trigger-card">
+            <div class="trigger-card-top">
+              <div class="trigger-icon purge">
+                <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path></svg>
+              </div>
+              <div class="trigger-meta">
+                <h4>Lifecycle Retention Sweep</h4>
+                <p>Purges soft-deleted trash and TTL-expired objects.</p>
+              </div>
+            </div>
+            <button class="btn btn-sm btn-primary" [disabled]="isOperating()" (click)="triggerWorkerJob('LIFECYCLE_PURGE', 'Lifecycle Retention Sweep')">
+              Enqueue Retention Purge
+            </button>
+          </div>
+
+          <!-- 5. Webhook Retry Dispatcher -->
+          <div class="trigger-card">
+            <div class="trigger-card-top">
+              <div class="trigger-icon retry">
+                <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+              </div>
+              <div class="trigger-meta">
+                <h4>Webhook Retry Sweep</h4>
+                <p>Re-dispatches failed webhook notifications with exponential backoff.</p>
+              </div>
+            </div>
+            <button class="btn btn-sm btn-primary" [disabled]="isOperating()" (click)="triggerWorkerJob('WEBHOOK_RETRY', 'Webhook Retry Sweep')">
+              Enqueue Webhook Retries
+            </button>
+          </div>
+
+          <!-- 6. Hot Backup Snapshot -->
+          <div class="trigger-card">
+            <div class="trigger-card-top">
+              <div class="trigger-icon backup">
+                <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect></svg>
+              </div>
+              <div class="trigger-meta">
+                <h4>Hot Backup Snapshot</h4>
+                <p>Generates atomic snapshot of database, WAL, and metadata.</p>
+              </div>
+            </div>
+            <button class="btn btn-sm btn-secondary" [disabled]="isOperating()" (click)="downloadHotBackup()">
+              Export Backup Archive
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Job Queue Table -->
+      <div class="section-block">
+        <div class="table-toolbar">
+          <div class="toolbar-left">
+            <h2>Live Worker Job Stream</h2>
+            <div class="job-status-tabs">
+              <button class="job-tab" [class.active]="jobStatusFilter() === 'ALL'" (click)="jobStatusFilter.set('ALL')">All Jobs ({{ workerJobs().length }})</button>
+              <button class="job-tab" [class.active]="jobStatusFilter() === 'PROCESSING'" (click)="jobStatusFilter.set('PROCESSING')">Processing</button>
+              <button class="job-tab" [class.active]="jobStatusFilter() === 'COMPLETED'" (click)="jobStatusFilter.set('COMPLETED')">Completed</button>
+              <button class="job-tab" [class.active]="jobStatusFilter() === 'FAILED'" (click)="jobStatusFilter.set('FAILED')">Failed</button>
+            </div>
+          </div>
+          <div class="toolbar-right">
+            <div class="search-wrap">
+              <input 
+                type="text" 
+                placeholder="Search job ID, type, path..." 
+                [value]="jobSearchQuery()" 
+                (input)="jobSearchQuery.set($any($event.target).value)" />
+            </div>
+            <button class="btn btn-sm btn-ghost" (click)="clearHistory()">Clear History</button>
+            <button class="btn btn-sm btn-ghost" (click)="loadWorkerJobs()">Refresh</button>
+          </div>
+        </div>
+
+        <div class="jobs-table-card">
+          <table class="jobs-table">
+            <thead>
+              <tr>
+                <th>Job ID</th>
+                <th>Task Type</th>
+                <th>Target Object / Payload</th>
+                <th>Status</th>
+                <th>Worker</th>
+                <th>Duration</th>
+                <th>Dispatched At</th>
+                <th style="text-align: right;">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (job of filteredJobs(); track job.id) {
+                <tr class="job-row">
+                  <td class="font-mono text-muted text-xs">{{ job.id.substring(0, 8) }}...</td>
+                  <td>
+                    <span class="job-type-pill" [class]="job.type.toLowerCase()">
+                      {{ job.type }}
+                    </span>
+                  </td>
+                  <td>
+                    <div class="target-cell font-mono">
+                      @if (job.bucket && job.path) {
+                        <span>{{ job.bucket }}/{{ job.path }}</span>
+                      } @else if (job.bucket) {
+                        <span>Bucket: {{ job.bucket }}</span>
+                      } @else {
+                        <span class="text-dim">Global Appliance Task</span>
+                      }
+                      <span *ngIf="job.error" class="job-error-sub">{{ job.error }}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="job-status-pill" [class]="job.status.toLowerCase()">
+                      <span class="status-dot" *ngIf="job.status === 'PROCESSING'"></span>
+                      {{ job.status }}
+                    </span>
+                  </td>
+                  <td class="font-mono text-muted">
+                    {{ job.workerId ? 'Worker #' + job.workerId : 'Pending' }}
+                  </td>
+                  <td class="font-mono">
+                    {{ job.durationMs ? job.durationMs + 'ms' : (job.status === 'PROCESSING' ? 'Running...' : '-') }}
+                  </td>
+                  <td class="font-mono text-muted text-xs">
+                    {{ job.createdAt | date:'mediumTime' }}
+                  </td>
+                  <td style="text-align: right;">
+                    <button class="btn-rerun" (click)="triggerWorkerJob(job.type, 'Re-run Job', job.bucket || '', job.path || '')" title="Re-enqueue Job">
+                      <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                    </button>
+                  </td>
+                </tr>
+              }
+
+              @if (filteredJobs().length === 0) {
+                <tr>
+                  <td colspan="8" class="empty-jobs">
+                    No background worker jobs recorded. Enqueue a maintenance task above or upload files to see live worker activity.
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- TAB 2: CAS Deduplication Engine -->
+  @if (activeTab() === 'dedup') {
+    <div class="tab-content animate-fade">
+      @if (dedupReport(); as rep) {
+        <div class="dedup-summary-grid">
+          <div class="dedup-card">
+            <span class="dedup-label">Virtual Files Managed</span>
+            <span class="dedup-val">{{ rep.totalVirtualFiles | number }}</span>
+            <span class="dedup-sub">Logical file pointers in metadata</span>
+          </div>
+          <div class="dedup-card">
+            <span class="dedup-label">Unique Physical Blobs</span>
+            <span class="dedup-val">{{ rep.uniqueBlobs | number }}</span>
+            <span class="dedup-sub">Distinct SHA-256 CAS content blocks</span>
+          </div>
+          <div class="dedup-card">
+            <span class="dedup-label">Physical Disk Stored</span>
+            <span class="dedup-val">{{ formatBytes(rep.physicalBytes) }}</span>
+            <span class="dedup-sub">Total compressed on-disk footprint</span>
+          </div>
+          <div class="dedup-card highlight">
+            <span class="dedup-label">Storage Savings</span>
+            <span class="dedup-val text-emerald">{{ rep.savingsPercent | number:'1.1-1' }}%</span>
+            <span class="dedup-sub">{{ formatBytes(rep.bytesSaved) }} disk space reclaimed</span>
+          </div>
+        </div>
+      }
+
+      <div class="section-card">
+        <h3>Content-Addressable Storage (CAS) Architecture</h3>
+        <p>Prolead File hashes every incoming upload chunk with SHA-256 and stores identical contents under unified content-addressed chunks. When identical documents, videos, or assets are uploaded across multiple workspaces or buckets, only a single physical copy is retained on disk.</p>
+        <button class="btn btn-primary btn-sm" [disabled]="isOperating()" (click)="triggerWorkerJob('CAS_DEDUP', 'CAS Deduplication Sweep')">
+          Run CAS Optimization Sweep
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- TAB 3: Security & Audit Trail -->
+  @if (activeTab() === 'audit') {
+    <div class="tab-content animate-fade">
+      <div class="table-toolbar">
+        <div class="toolbar-left">
+          <h2>Security & Compliance Trail</h2>
+          <span class="text-muted text-sm">({{ totalAuditLogs() }} recorded events)</span>
+        </div>
+        <div class="toolbar-right">
+          <select [ngModel]="actionFilter()" (ngModelChange)="actionFilter.set($event); loadAuditLogs()" class="form-select">
+            <option value="">All Actions</option>
+            <option value="UPLOAD">UPLOAD</option>
+            <option value="DOWNLOAD">DOWNLOAD</option>
+            <option value="DELETE">DELETE</option>
+            <option value="RESTORE">RESTORE</option>
+            <option value="ROTATE">ROTATE</option>
+          </select>
+          <button class="btn btn-sm btn-ghost" (click)="loadAuditLogs()">Refresh</button>
+        </div>
+      </div>
+
+      <div class="jobs-table-card">
+        <table class="jobs-table">
+          <thead>
+            <tr>
+              <th>Action</th>
+              <th>Bucket / Path</th>
+              <th>Actor</th>
+              <th>IP Address</th>
+              <th>Status</th>
+              <th>Latency</th>
+              <th>Timestamp</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (log of auditLogs(); track log.id) {
+              <tr class="job-row">
+                <td><span class="action-pill">{{ log.action }}</span></td>
+                <td class="font-mono text-sm">{{ log.bucket }}{{ log.path ? '/' + log.path : '' }}</td>
+                <td class="font-mono text-muted text-xs">{{ log.actor || 'system' }}</td>
+                <td class="font-mono text-muted text-xs">{{ log.ipAddress || '127.0.0.1' }}</td>
+                <td>
+                  <span class="status-badge-sm" [class.success]="log.status === 200" [class.error]="log.status >= 400">
+                    {{ log.status }}
+                  </span>
+                </td>
+                <td class="font-mono text-xs">{{ log.durationMs }}ms</td>
+                <td class="font-mono text-muted text-xs">{{ log.createdAt | date:'medium' }}</td>
+              </tr>
+            }
+
+            @if (auditLogs().length === 0) {
+              <tr>
+                <td colspan="7" class="empty-jobs">No audit log entries recorded yet.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+
+  <!-- TAB 4: Gateways & Telemetry -->
+  @if (activeTab() === 'gateways') {
+    <div class="tab-content animate-fade">
+      <div class="gateways-grid">
+        <div class="gateway-card">
+          <div class="gateway-header">
+            <h4>AWS S3 Compatible API Gateway</h4>
+            <span class="badge-active">Active</span>
+          </div>
+          <p>Mount S3 CLI, Cyberduck, Boto3, AWS SDKs directly against the local storage engine.</p>
+          <pre class="endpoint-code font-mono"><code>Endpoint: http://localhost:8080/s3
+Bucket URI: s3://default/my-folder/</code></pre>
+        </div>
+
+        <div class="gateway-card">
+          <div class="gateway-header">
+            <h4>TUS 1.0.0 Resumable Gateway</h4>
+            <span class="badge-active">Active</span>
+          </div>
+          <p>Open-protocol resumable uploads for multi-gigabyte files with chunk offset recovery.</p>
+          <pre class="endpoint-code font-mono"><code>Endpoint: http://localhost:8080/api/v1/tus/files
+Protocol: TUS 1.0.0 (PATCH, HEAD, OPTIONS)</code></pre>
+        </div>
+
+        <div class="gateway-card">
+          <div class="gateway-header">
+            <h4>Prometheus Telemetry Endpoint</h4>
+            <span class="badge-active">Active</span>
+          </div>
+          <p>Scrape real-time storage metrics, HTTP latency, disk IO, and worker queue gauges.</p>
+          <pre class="endpoint-code font-mono"><code>Scrape Path: http://localhost:8080/metrics</code></pre>
+        </div>
+
+        <div class="gateway-card">
+          <div class="gateway-header">
+            <h4>Server-Sent Events (SSE) Hub</h4>
+            <span class="badge-active">Active</span>
+          </div>
+          <p>Real-time bidirectional event streaming channel for live dashboard updates.</p>
+          <pre class="endpoint-code font-mono"><code>Stream Path: http://localhost:8080/api/v1/events</code></pre>
+        </div>
+      </div>
+    </div>
+  }
+</div>

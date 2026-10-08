@@ -1,0 +1,63 @@
+<!-- Toast Notification Stack -->
+<div class="toast-container" *ngIf="toasts().length > 0">
+  @for (toast of toasts(); track toast.id) {
+    <div class="toast-item animate-slide-in" [ngClass]="'toast-' + toast.type">
+      <div class="toast-icon">
+        @if (toast.type === 'success') {
+          <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        } @else if (toast.type === 'error') {
+          <svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+        } @else if (toast.type === 'warning') {
+          <svg class="svg-icon" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+        } @else {
+          <svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+        }
+      </div>
+
+      <div class="toast-content">
+        <h5 *ngIf="toast.title" class="toast-title">{{ toast.title }}</h5>
+        <p class="toast-message">{{ toast.message }}</p>
+      </div>
+
+      <button class="toast-close" (click)="dismissToast(toast.id)" title="Dismiss">✕</button>
+    </div>
+  }
+</div>
+
+<!-- Interactive HTML Modal Dialog (Alert / Confirm) -->
+@if (activeDialog(); as dialog) {
+  <div class="dialog-backdrop" (click)="dialog.isAlertOnly ? onConfirm() : onCancel()">
+    <div class="dialog-card animate-scale-up" [ngClass]="'dialog-' + dialog.type" (click)="$event.stopPropagation()">
+      <div class="dialog-header">
+        <div class="dialog-icon-badge" [ngClass]="'badge-' + dialog.type">
+          @if (dialog.type === 'danger' || dialog.type === 'error') {
+            <svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+          } @else if (dialog.type === 'warning') {
+            <svg class="svg-icon" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          } @else if (dialog.type === 'success') {
+            <svg class="svg-icon" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+          } @else {
+            <svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+          }
+        </div>
+        <h3 class="dialog-title">{{ dialog.title }}</h3>
+      </div>
+
+      <div class="dialog-body">
+        <p class="dialog-message">{{ dialog.message }}</p>
+      </div>
+
+      <div class="dialog-footer">
+        @if (!dialog.isAlertOnly) {
+          <button class="btn btn-secondary" (click)="onCancel()">{{ dialog.cancelText || 'Cancel' }}</button>
+        }
+        <button 
+          class="btn" 
+          [ngClass]="dialog.type === 'danger' || dialog.type === 'error' ? 'btn-danger' : (dialog.type === 'warning' ? 'btn-warning' : 'btn-primary')"
+          (click)="onConfirm()">
+          {{ dialog.confirmText || (dialog.isAlertOnly ? 'OK' : 'Confirm') }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

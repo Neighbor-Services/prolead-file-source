@@ -1,0 +1,101 @@
+# ==============================================================================
+# GoStore / Prolead File - Git Ignore Rules
+# ==============================================================================
+
+# External Links & Secondary Projects
+nx_app
+nx_app/
+
+# Environment, Secrets & Local Credentials
+.env
+.env.*
+.env.example
+*.pem
+*.key
+*.crt
+*.p8
+*.p12
+*.keystore
+*.jks
+sa.json
+*service_account*.json
+*serviceAccount*.json
+
+# Compiled Go Binaries & Artifacts
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.out
+*.test
+*.prof
+prolead-cli
+
+# Runtime Data, Databases & Local Storage Engine
+data/
+storage/
+uploads/
+backups/
+logs/
+*.log
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+# Node.js & Web Frontend Dependencies / Builds
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+.angular/
+**/.angular/
+.npm/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Flutter / Dart Packages & Build Artifacts
+.dart_tool/
+**/.dart_tool/
+.packages
+**/.packages
+.pub-cache/
+.pub/
+**/build/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+
+# IDE & Editor Configuration
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# OS-Specific Cache Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Test Coverage & Temporary Artifacts
+coverage/
+coverage.out
+coverage.html
+*.tmp
+*.temp
+/tmp/

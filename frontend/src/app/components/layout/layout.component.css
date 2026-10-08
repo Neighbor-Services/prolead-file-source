@@ -1,0 +1,32 @@
+.app-layout {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  overflow: hidden;
+  transition: var(--transition);
+}
+
+.app-main-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+  background-color: var(--bg-main);
+  transition: var(--transition);
+}
+
+.main-container {
+  flex: 1;
+  overflow-y: auto;
+  position: relative;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  background-image: 
+    radial-gradient(circle at 10% 10%, var(--bg-radial-1) 0%, transparent 35%),
+    radial-gradient(circle at 90% 90%, var(--bg-radial-2) 0%, transparent 40%);
+  transition: var(--transition);
+}

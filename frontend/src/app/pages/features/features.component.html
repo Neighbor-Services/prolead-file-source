@@ -1,0 +1,58 @@
+<div class="features-page">
+  <div class="page-title-row">
+    <div>
+      <h1 style="display: flex; align-items: center;">
+        <svg class="svg-icon svg-icon-lg" viewBox="0 0 24 24" style="margin-right: 10px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+        50 Enterprise Features Matrix
+      </h1>
+      <p class="subtitle">Complete implementation directory across the Go CAS backend & Zoneless Angular client.</p>
+    </div>
+    <div class="stats-badge">
+      <span class="count-pill">50 / 50</span>
+      <span class="status-active">Operational</span>
+    </div>
+  </div>
+
+  <!-- Search & Category Filters -->
+  <div class="filter-bar">
+    <input 
+      type="text" 
+      placeholder="Search features (e.g. CAS, Resumable, Webhook, S3)..." 
+      [ngModel]="searchQuery()" 
+      (ngModelChange)="searchQuery.set($event)"
+      class="form-control search-input" />
+
+    <div class="category-pills">
+      @for (cat of categories; track cat) {
+        <button 
+          class="cat-pill" 
+          [class.active]="selectedCategory() === cat"
+          (click)="selectedCategory.set(cat)">
+          {{ cat }}
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Feature Grid -->
+  <div class="features-grid">
+    @for (item of filteredFeatures(); track item.id) {
+      <div class="feature-card">
+        <div class="feature-header">
+          <span class="feature-number">#{{ item.id < 10 ? '0' + item.id : item.id }}</span>
+          <span class="feature-category">{{ item.category }}</span>
+        </div>
+        <h3 class="feature-name">{{ item.name }}</h3>
+        <p class="feature-desc">{{ item.description }}</p>
+        <div class="feature-footer">
+          <div class="endpoints-list">
+            @for (ep of item.endpoints; track ep) {
+              <code>{{ ep }}</code>
+            }
+          </div>
+          <span class="badge-status-active">Active</span>
+        </div>
+      </div>
+    }
+  </div>
+</div>

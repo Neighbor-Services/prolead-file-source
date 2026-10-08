@@ -1,0 +1,28 @@
+{
+  "name": "@prolead-file/sdk",
+  "version": "1.0.0",
+  "description": "Official TypeScript & Node.js SDK for Prolead File on-premise object storage appliance",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "node --test dist/test/*.test.js"
+  },
+  "keywords": [
+    "prolead-file",
+    "prolead",
+    "storage",
+    "s3",
+    "object-storage",
+    "sdk",
+    "typescript",
+    "node"
+  ],
+  "author": "Prolead File Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "typescript": "^5.9.3"
+  }
+}
