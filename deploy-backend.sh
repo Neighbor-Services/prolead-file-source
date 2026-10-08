@@ -89,11 +89,15 @@ else
     echo -e "${GREEN}✓ Go toolchain detected: $(go version)${NC}"
 fi
 
-# Ensure Node.js & npm (for Angular web frontend)
-if ! command -v node &> /dev/null; then
-    echo -e "${YELLOW}Node.js is not installed. Installing Node.js 20 LTS...${NC}"
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+# Ensure Node.js 22 LTS & npm (for Angular 22 web frontend)
+NODE_VER=$(node -v 2>/dev/null | cut -d'.' -f1 | tr -d 'v' || echo "0")
+if [ "$NODE_VER" -lt 22 ]; then
+    echo -e "${YELLOW}Ensuring Node.js 22 LTS for Angular 22...${NC}"
+    curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
     apt-get install -y -qq nodejs
+    echo -e "${GREEN}✓ Node.js $(node -v) & npm $(npm -v) installed successfully.${NC}"
+else
+    echo -e "${GREEN}✓ Node.js $(node -v) detected.${NC}"
 fi
 
 # Ensure system packages
