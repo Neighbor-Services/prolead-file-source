@@ -280,23 +280,32 @@ if [ -d "$APP_DIR/frontend" ] && [ -f "$APP_DIR/frontend/package.json" ]; then
     echo -e "${GREEN}✓ Web frontend built and copied to internal static assets.${NC}"
 fi
 
+mkdir -p "$APP_DIR/bin"
+chown -R $USER:$GROUP "$APP_DIR/bin" 2>/dev/null || true
+
 echo -e "${YELLOW}Downloading Go dependencies...${NC}"
 sudo -u $USER bash -c "cd '$APP_DIR' && env PATH=\"\$PATH:/usr/local/go/bin\" go mod tidy"
 
-echo -e "${YELLOW}Compiling GoStore Server (cmd/server/main.go)...${NC}"
-sudo -u $USER bash -c "cd '$APP_DIR' && env PATH=\"\$PATH:/usr/local/go/bin\" go build -ldflags='-s -w' -o bin/server ./cmd/server/"
-chmod +x "$APP_DIR/bin/server"
-echo -e "${GREEN}✓ GoStore Server compiled: $APP_DIR/bin/server${NC}"
+if [ -f "$APP_DIR/cmd/server/main.go" ]; then
+    echo -e "${YELLOW}Compiling GoStore Server (cmd/server/main.go)...${NC}"
+    sudo -u $USER bash -c "cd '$APP_DIR' && env PATH=\"\$PATH:/usr/local/go/bin\" go build -ldflags='-s -w' -o bin/server ./cmd/server/"
+    chmod +x "$APP_DIR/bin/server"
+    echo -e "${GREEN}✓ GoStore Server compiled: $APP_DIR/bin/server${NC}"
+fi
 
-echo -e "${YELLOW}Compiling Superuser Creator (cmd/createsuperuser/main.go)...${NC}"
-sudo -u $USER bash -c "cd '$APP_DIR' && env PATH=\"\$PATH:/usr/local/go/bin\" go build -ldflags='-s -w' -o bin/createsuperuser ./cmd/createsuperuser/"
-chmod +x "$APP_DIR/bin/createsuperuser"
-echo -e "${GREEN}✓ Superuser Creator CLI compiled: $APP_DIR/bin/createsuperuser${NC}"
+if [ -f "$APP_DIR/cmd/createsuperuser/main.go" ]; then
+    echo -e "${YELLOW}Compiling Superuser Creator (cmd/createsuperuser/main.go)...${NC}"
+    sudo -u $USER bash -c "cd '$APP_DIR' && env PATH=\"\$PATH:/usr/local/go/bin\" go build -ldflags='-s -w' -o bin/createsuperuser ./cmd/createsuperuser/"
+    chmod +x "$APP_DIR/bin/createsuperuser"
+    echo -e "${GREEN}✓ Superuser Creator CLI compiled: $APP_DIR/bin/createsuperuser${NC}"
+fi
 
-echo -e "${YELLOW}Compiling Prolead File CLI (cmd/prolead-cli/main.go)...${NC}"
-sudo -u $USER bash -c "cd '$APP_DIR' && env PATH=\"\$PATH:/usr/local/go/bin\" go build -ldflags='-s -w' -o bin/prolead-cli ./cmd/prolead-cli/"
-chmod +x "$APP_DIR/bin/prolead-cli"
-echo -e "${GREEN}✓ Prolead File CLI compiled: $APP_DIR/bin/prolead-cli${NC}"
+if [ -f "$APP_DIR/cmd/prolead-cli/main.go" ]; then
+    echo -e "${YELLOW}Compiling Prolead File CLI (cmd/prolead-cli/main.go)...${NC}"
+    sudo -u $USER bash -c "cd '$APP_DIR' && env PATH=\"\$PATH:/usr/local/go/bin\" go build -ldflags='-s -w' -o bin/prolead-cli ./cmd/prolead-cli/"
+    chmod +x "$APP_DIR/bin/prolead-cli"
+    echo -e "${GREEN}✓ Prolead File CLI compiled: $APP_DIR/bin/prolead-cli${NC}"
+fi
 
 # Admin User Account Creation Prompt
 echo ""
