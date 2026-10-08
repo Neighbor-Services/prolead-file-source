@@ -22,7 +22,11 @@ sa.json
 *serviceAccount*.json
 
 # Compiled Go Binaries & Artifacts
-bin/
+/bin/
+/gostore
+/server
+/createsuperuser
+/prolead-cli
 *.exe
 *.exe~
 *.dll
@@ -31,7 +35,6 @@ bin/
 *.out
 *.test
 *.prof
-prolead-cli
 
 # Runtime Data, Databases & Local Storage Engine (Anchored to Root Only)
 /data/
