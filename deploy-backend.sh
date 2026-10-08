@@ -101,18 +101,34 @@ echo -e "${YELLOW}Ensuring system packages (git, curl, make, sqlite3, nginx, ufw
 apt-get update -qq
 apt-get install -y -qq git curl make sqlite3 nginx rsync ufw
 
-echo -e "${YELLOW}Phase 2: Directory Structure & Code Placement${NC}"
+echo -e "${YELLOW}Phase 2: Directory Structure, Storage Engine & Permission Setup${NC}"
 
+# Add service user to web server group for shared access
+usermod -aG "$GROUP" "$USER" 2>/dev/null || true
+
+# Explicitly create all required storage, data, log, and backup directories
 mkdir -p "$APP_DIR"
 mkdir -p "$APP_DIR/bin"
 mkdir -p "$APP_DIR/data"
 mkdir -p "$APP_DIR/data/storage"
+mkdir -p "$APP_DIR/data/storage/.blobs"
+mkdir -p "$APP_DIR/data/storage/temp"
+mkdir -p "$APP_DIR/data/storage/trash"
 mkdir -p "$APP_DIR/logs"
 mkdir -p "$APP_DIR/backups"
+mkdir -p "$APP_DIR/backups/postgres"
 mkdir -p "$APP_DIR/config"
-chmod 755 /opt "$APP_DIR"
 
+chmod 755 /opt "$APP_DIR"
 chown -R $USER:$GROUP "$APP_DIR"
+
+# Ensure read, write, and execute permissions on all runtime storage and log directories
+chmod -R 775 "$APP_DIR/data"
+chmod -R 775 "$APP_DIR/logs"
+chmod -R 775 "$APP_DIR/backups"
+chmod -R 775 "$APP_DIR/config"
+
+echo -e "${GREEN}✓ Created storage directories with read/write permissions at $APP_DIR/data/storage${NC}"
 
 echo -e "${YELLOW}Locating GoStore source repository...${NC}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -161,6 +177,7 @@ rsync -a \
 
 chown -R $USER:$GROUP "$APP_DIR" || true
 chmod -R u+rwX,g+rX,o+rX "$APP_DIR" || true
+chmod -R 775 "$APP_DIR/data" "$APP_DIR/logs" "$APP_DIR/backups" 2>/dev/null || true
 
 cd "$APP_DIR"
 
