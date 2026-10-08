@@ -156,27 +156,23 @@ echo -e "${GREEN}✓ Found source at: $SRC_DIR${NC}"
 
 # Synchronize code files while preserving production data, storage blobs, .env, and logs
 rsync -a \
-    --exclude='bin' \
-    --exclude='bin/' \
-    --exclude='bin/**' \
-    --exclude='.git' \
-    --exclude='.git/' \
-    --exclude='.git/**' \
+    --exclude='/.git' \
+    --exclude='/.git/**' \
+    --exclude='/bin' \
+    --exclude='/bin/**' \
     --exclude='.env*' \
     --exclude='*.env' \
-    --exclude='data' \
-    --exclude='data/' \
-    --exclude='data/**' \
-    --exclude='storage' \
-    --exclude='storage/' \
-    --exclude='storage/**' \
-    --exclude='logs' \
-    --exclude='logs/' \
-    --exclude='logs/**' \
-    --exclude='backups' \
-    --exclude='backups/' \
-    --exclude='backups/**' \
-    --exclude='nx_app' \
+    --exclude='/data' \
+    --exclude='/data/**' \
+    --exclude='/storage' \
+    --exclude='/storage/**' \
+    --exclude='/logs' \
+    --exclude='/logs/**' \
+    --exclude='/backups' \
+    --exclude='/backups/**' \
+    --exclude='/nx_app' \
+    --exclude='node_modules/' \
+    --exclude='.angular/' \
     "$SRC_DIR/" "$APP_DIR/"
 
 chown -R $USER:$GROUP "$APP_DIR" || true

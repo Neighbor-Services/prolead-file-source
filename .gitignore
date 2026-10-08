@@ -33,8 +33,12 @@ bin/
 *.prof
 prolead-cli
 
-# Runtime Data, Databases & Local Storage Engine
-
+# Runtime Data, Databases & Local Storage Engine (Anchored to Root Only)
+/data/
+/storage/
+/uploads/
+/backups/
+/logs/
 *.log
 *.db
 *.db-journal
