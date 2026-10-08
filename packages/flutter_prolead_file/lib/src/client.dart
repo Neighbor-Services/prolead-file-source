@@ -172,7 +172,7 @@ class ProleadFileClient {
         isPublic: isPublic,
       ).listen(
         (event) {
-          onProgress(event.bytesUploaded, event.totalBytes);
+          onProgress(event.bytesSent, event.totalBytes);
           if (event.isCompleted && event.result != null) {
             completer.complete(event.result!);
           }

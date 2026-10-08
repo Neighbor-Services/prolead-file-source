@@ -202,6 +202,45 @@ class MockProleadFileClient implements ProleadFileClient {
   }
 
   @override
+  Future<ProleadFileObject> upload({
+    String bucket = 'default',
+    required String path,
+    required dynamic file,
+    String? contentType,
+    bool isPublic = true,
+    void Function(int sent, int total)? onProgress,
+  }) async {
+    Uint8List bytes;
+    String filename;
+
+    if (file is Uint8List) {
+      bytes = file;
+      filename = path.split('/').last;
+    } else {
+      try {
+        bytes = (file as dynamic).readAsBytesSync();
+        filename = (file.path as String).split(RegExp(r'[/\\]')).last;
+      } catch (_) {
+        bytes = await (file as dynamic).readAsBytes();
+        filename = (file.path as String).split(RegExp(r'[/\\]')).last;
+      }
+    }
+
+    if (onProgress != null) {
+      onProgress(bytes.lengthInBytes, bytes.lengthInBytes);
+    }
+
+    return uploadBytes(
+      bucket: bucket,
+      path: path,
+      bytes: bytes,
+      filename: filename,
+      contentType: contentType,
+      isPublic: isPublic,
+    );
+  }
+
+  @override
   Future<ProleadFileObject> uploadString({
     String bucket = 'default',
     required String path,
