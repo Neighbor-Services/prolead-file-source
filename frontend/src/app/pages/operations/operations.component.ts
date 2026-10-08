@@ -250,4 +250,8 @@ export class OperationsComponent implements OnInit, OnDestroy {
     if (h > 0) return `${h}h ${m}m ${s}s`;
     return `${m}m ${s}s`;
   }
+
+  getBaseUrl(): string {
+    return this.goStore.getBaseUrl() || (typeof window !== 'undefined' ? window.location.origin : 'https://file.proleadsolutions.co');
+  }
 }

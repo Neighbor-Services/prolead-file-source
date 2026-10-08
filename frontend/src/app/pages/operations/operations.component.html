@@ -455,7 +455,7 @@
             <span class="badge-active">Active</span>
           </div>
           <p>Mount S3 CLI, Cyberduck, Boto3, AWS SDKs directly against the local storage engine.</p>
-          <pre class="endpoint-code font-mono"><code>Endpoint: http://localhost:8080/s3
+          <pre class="endpoint-code font-mono"><code>Endpoint: {{ getBaseUrl() }}/s3
 Bucket URI: s3://default/my-folder/</code></pre>
         </div>
 
@@ -465,7 +465,7 @@ Bucket URI: s3://default/my-folder/</code></pre>
             <span class="badge-active">Active</span>
           </div>
           <p>Open-protocol resumable uploads for multi-gigabyte files with chunk offset recovery.</p>
-          <pre class="endpoint-code font-mono"><code>Endpoint: http://localhost:8080/api/v1/tus/files
+          <pre class="endpoint-code font-mono"><code>Endpoint: {{ getBaseUrl() }}/api/v1/tus/files
 Protocol: TUS 1.0.0 (PATCH, HEAD, OPTIONS)</code></pre>
         </div>
 
@@ -475,7 +475,7 @@ Protocol: TUS 1.0.0 (PATCH, HEAD, OPTIONS)</code></pre>
             <span class="badge-active">Active</span>
           </div>
           <p>Scrape real-time storage metrics, HTTP latency, disk IO, and worker queue gauges.</p>
-          <pre class="endpoint-code font-mono"><code>Scrape Path: http://localhost:8080/metrics</code></pre>
+          <pre class="endpoint-code font-mono"><code>Scrape Path: {{ getBaseUrl() }}/metrics</code></pre>
         </div>
 
         <div class="gateway-card">
@@ -484,7 +484,7 @@ Protocol: TUS 1.0.0 (PATCH, HEAD, OPTIONS)</code></pre>
             <span class="badge-active">Active</span>
           </div>
           <p>Real-time bidirectional event streaming channel for live dashboard updates.</p>
-          <pre class="endpoint-code font-mono"><code>Stream Path: http://localhost:8080/api/v1/events</code></pre>
+          <pre class="endpoint-code font-mono"><code>Stream Path: {{ getBaseUrl() }}/api/v1/events</code></pre>
         </div>
       </div>
     </div>
