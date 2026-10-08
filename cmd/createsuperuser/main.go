@@ -32,6 +32,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	if cfg.DBType == "postgres" {
+		fmt.Printf("📦 Database: PostgreSQL (host=%s, db=%s, user=%s)\n", cfg.PostgresHost, cfg.PostgresDB, cfg.PostgresUser)
+	} else {
+		fmt.Printf("📦 Database: SQLite (%s)\n", cfg.DatabasePath)
+	}
+
 	username := strings.TrimSpace(*flagUsername)
 	email := strings.TrimSpace(*flagEmail)
 	password := strings.TrimSpace(*flagPassword)
@@ -45,12 +51,11 @@ func main() {
 
 		// 1. Username
 		if username == "" {
-			fmt.Print("Username: ")
+			fmt.Print("Username [default: admin]: ")
 			username, _ = reader.ReadString('\n')
 			username = strings.TrimSpace(username)
 			if username == "" {
-				fmt.Println("❌ Error: Username cannot be blank.")
-				os.Exit(1)
+				username = "admin"
 			}
 		}
 
@@ -109,12 +114,19 @@ func main() {
 	userRepo := sqlite.NewUserRepository(db)
 	ctx := context.Background()
 
-	// Check if user already exists
+	// Check if user already exists (by username or email)
 	existing, err := userRepo.GetByUsername(ctx, username)
-	if err == nil && existing != nil {
+	if (err != nil || existing == nil) && email != "" {
+		existing, _ = userRepo.GetByUsername(ctx, email)
+	}
+
+	if existing != nil {
 		existing.PasswordHash = string(hash)
 		if email != "" {
 			existing.Email = email
+		}
+		if username != "" {
+			existing.Username = username
 		}
 		existing.IsSuperuser = true
 		if err := userRepo.Update(ctx, existing); err != nil {
@@ -122,7 +134,7 @@ func main() {
 			os.Exit(1)
 		}
 		fmt.Println("✅ Existing user updated to Superuser successfully.")
-		fmt.Printf("👤 Username: %s\n", username)
+		fmt.Printf("👤 Username: %s\n", existing.Username)
 		if existing.Email != "" {
 			fmt.Printf("📧 Email:    %s\n", existing.Email)
 		}

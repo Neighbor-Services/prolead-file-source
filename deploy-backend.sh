@@ -324,10 +324,10 @@ if [ "$ADMIN_CHOICE" = "1" ]; then
     ADMIN_PASS=${ADMIN_PASS:-Admin123!}
     echo ""
     
-    sudo -u $USER env PATH="$PATH" "$APP_DIR/bin/createsuperuser" \
-      -username="$ADMIN_USER" \
-      -email="$ADMIN_EMAIL" \
-      -password="$ADMIN_PASS" || echo -e "${YELLOW}Admin creation step completed.${NC}"
+    sudo -u $USER bash -c "cd '$APP_DIR' && env PATH=\"\$PATH\" \"$APP_DIR/bin/createsuperuser\" \
+      -username=\"$ADMIN_USER\" \
+      -email=\"$ADMIN_EMAIL\" \
+      -password=\"$ADMIN_PASS\"" || echo -e "${YELLOW}Admin creation step completed.${NC}"
 fi
 
 echo -e "${YELLOW}Phase 5: Systemd Multi-Instance Cluster Setup${NC}"

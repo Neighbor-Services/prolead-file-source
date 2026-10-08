@@ -40,6 +40,8 @@ func (c *Config) IsProduction() bool {
 }
 
 func LoadConfig() *Config {
+	loadEnvFiles()
+
 	env := getEnv("ENV", getEnv("APP_ENV", "development"))
 	port := getEnv("PORT", "8080")
 	host := getEnv("HOST", "0.0.0.0")
@@ -127,3 +129,43 @@ func getEnv(key, defaultVal string) string {
 	}
 	return defaultVal
 }
+
+func loadEnvFiles() {
+	candidates := []string{
+		os.Getenv("ENV_FILE"),
+		".env",
+		"../.env",
+		"../../.env",
+		"/opt/gostore/.env",
+		"/etc/gostore/.env",
+	}
+
+	for _, path := range candidates {
+		if path == "" {
+			continue
+		}
+		if data, err := os.ReadFile(path); err == nil {
+			parseEnvContent(string(data))
+		}
+	}
+}
+
+func parseEnvContent(content string) {
+	lines := strings.Split(content, "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) == 2 {
+			k := strings.TrimSpace(parts[0])
+			v := strings.TrimSpace(parts[1])
+			v = strings.Trim(v, `"'`)
+			if _, exists := os.LookupEnv(k); !exists {
+				_ = os.Setenv(k, v)
+			}
+		}
+	}
+}
+
