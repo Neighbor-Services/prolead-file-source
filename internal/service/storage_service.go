@@ -94,20 +94,17 @@ func (s *StorageService) Upload(ctx context.Context, input UploadInput) (*domain
 		return nil, err
 	}
 	if bucket == nil {
-		if bucketName == "default" {
-			bucket = &domain.Bucket{
-				ID:          uuid.New().String(),
-				Name:        "default",
-				Description: "Default auto-created bucket",
-				IsPublic:    true,
-				CreatedAt:   time.Now().UTC(),
-				UpdatedAt:   time.Now().UTC(),
-			}
-			if err := s.bucketRepo.Create(ctx, bucket); err != nil {
-				return nil, fmt.Errorf("failed to create default bucket: %w", err)
-			}
-		} else {
-			return nil, ErrBucketNotFound
+		bucket = &domain.Bucket{
+			ID:          "b-" + uuid.New().String()[:8],
+			ProjectID:   "p-default",
+			Name:        bucketName,
+			Description: fmt.Sprintf("Auto-provisioned bucket for %s", bucketName),
+			IsPublic:    true,
+			CreatedAt:   time.Now().UTC(),
+			UpdatedAt:   time.Now().UTC(),
+		}
+		if err := s.bucketRepo.Create(ctx, bucket); err != nil {
+			return nil, fmt.Errorf("failed to auto-create bucket %s: %w", bucketName, err)
 		}
 	}
 
