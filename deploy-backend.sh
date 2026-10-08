@@ -211,7 +211,7 @@ if [ "$DB_CHOICE" = "1" ]; then
     sudo -u postgres psql -tc "SELECT 1 FROM pg_database WHERE datname = '$DB_NAME'" | grep -q 1 || \
         sudo -u postgres psql -c "CREATE DATABASE $DB_NAME;"
         
-    sudo -u postgres psql -tc "SELECT 1 FROM pg_roles WHERE usename = '$DB_USER'" | grep -q 1 || \
+    sudo -u postgres psql -tc "SELECT 1 FROM pg_roles WHERE rolname = '$DB_USER'" | grep -q 1 || \
         sudo -u postgres psql -c "CREATE USER $DB_USER WITH ENCRYPTED PASSWORD '$DB_PASSWORD';"
         
     sudo -u postgres psql -c "ALTER USER $DB_USER WITH ENCRYPTED PASSWORD '$DB_PASSWORD';"
@@ -276,7 +276,7 @@ export PATH=$PATH:/usr/local/go/bin
 
 echo -e "${YELLOW}Building Angular 22 Studio Web App...${NC}"
 if [ -d "$APP_DIR/frontend" ] && [ -f "$APP_DIR/frontend/package.json" ]; then
-    sudo -u $USER bash -c "cd '$APP_DIR/frontend' && npm ci --prefer-offline && npm run build"
+    sudo -u $USER bash -c "cd '$APP_DIR/frontend' && (npm ci --legacy-peer-deps || npm install --legacy-peer-deps) && npm run build"
     echo -e "${GREEN}✓ Web frontend built and copied to internal static assets.${NC}"
 fi
 
