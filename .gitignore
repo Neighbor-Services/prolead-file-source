@@ -34,11 +34,7 @@ bin/
 prolead-cli
 
 # Runtime Data, Databases & Local Storage Engine
-data/
-storage/
-uploads/
-backups/
-logs/
+
 *.log
 *.db
 *.db-journal

@@ -1,0 +1,1067 @@
+<div class="storage-page" (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)" (drop)="onDrop($event)">
+
+  <!-- Drag & Drop Visual Overlay -->
+  @if (isDraggingOver()) {
+    <div class="drag-drop-overlay">
+      <div class="dropzone-box">
+        <svg class="svg-icon svg-icon-xl" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+        <h3>Drop files here to upload</h3>
+        <p>Files will be stored directly into <strong>{{ currentBucket() }}/{{ currentPrefix() }}</strong></p>
+      </div>
+    </div>
+  }
+
+  <!-- Page Header & Primary Controls -->
+  <header class="page-header">
+    <div class="header-left">
+      <div class="search-bar">
+        <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input 
+          type="text" 
+          placeholder="Search files and folders in {{ currentBucket() }}..." 
+          [value]="searchQuery()" 
+          (input)="onSearchInput($event)" />
+        @if (searchQuery()) {
+          <button class="clear-search-btn" (click)="clearSearch()">✕</button>
+        }
+      </div>
+
+      <!-- Quick Category Filters -->
+      <div class="category-pills">
+        <button class="cat-pill" [class.active]="activeCategory() === 'all'" (click)="setCategory('all')">All</button>
+        <button class="cat-pill" [class.active]="activeCategory() === 'images'" (click)="setCategory('images')">Images</button>
+        <button class="cat-pill" [class.active]="activeCategory() === 'videos'" (click)="setCategory('videos')">Videos</button>
+        <button class="cat-pill" [class.active]="activeCategory() === 'documents'" (click)="setCategory('documents')">Documents</button>
+        <button class="cat-pill" [class.active]="activeCategory() === 'code'" (click)="setCategory('code')">Code</button>
+        <button class="cat-pill" [class.active]="activeCategory() === 'archives'" (click)="setCategory('archives')">Archives</button>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <!-- View Mode Switcher -->
+      <div class="view-mode-toggle">
+        <button class="view-btn" [class.active]="viewMode() === 'table'" (click)="viewMode.set('table')" title="List Table View">
+          <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+        </button>
+        <button class="view-btn" [class.active]="viewMode() === 'grid'" (click)="viewMode.set('grid')" title="Visual Cards Grid View">
+          <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+        </button>
+      </div>
+
+      <!-- Action Buttons -->
+      <button class="btn btn-secondary" (click)="openNewFolderModal()" title="Create Subfolder">
+        <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><line x1="12" y1="11" x2="12" y2="17"></line><line x1="9" y1="14" x2="15" y2="14"></line></svg>
+        <span>New Folder</span>
+      </button>
+
+      <input #fileInput type="file" multiple (change)="onFileSelected($event)" style="display: none;" />
+      <button class="btn btn-primary" (click)="fileInput.click()" title="Upload Files">
+        <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+        <span>Upload Files</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Storage Navigation & Bucket Quota Ribbon -->
+  <div class="storage-body">
+    <div class="buckets-nav">
+      <div class="nav-left-group">
+        <!-- Active / Trash Switch -->
+        <div class="view-switch">
+          <button 
+            class="switch-btn" 
+            [class.active]="activeSubView() === 'files'" 
+            (click)="switchSubView('files')">
+            <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+            Active Files
+          </button>
+          <button 
+            class="switch-btn" 
+            [class.active]="activeSubView() === 'trash'" 
+            (click)="switchSubView('trash')">
+            <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            Trash Bin
+          </button>
+        </div>
+
+        <div class="bucket-selector-wrap">
+          <span class="section-label">Buckets</span>
+          <div class="bucket-pills">
+            @for (b of buckets(); track b.name) {
+              <button 
+                class="bucket-pill" 
+                [class.active]="currentBucket() === b.name"
+                (click)="selectBucket(b.name)">
+                <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+                <span>{{ b.name }}</span>
+                <span [class]="b.isPublic ? 'badge-pub' : 'badge-priv'">
+                  {{ b.isPublic ? 'PUB' : 'PRIV' }}
+                </span>
+              </button>
+            }
+            <button class="btn-xs add-bucket-btn" (click)="openNewBucketModal()" title="Create New Bucket">
+              + New Bucket
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="bucket-controls">
+        <button class="btn-icon-subtle" (click)="openLifecycleModal()" title="Bucket Retention & Lifecycle Policies">
+          <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          <span>Lifecycle</span>
+        </button>
+        <button class="btn-icon-subtle" (click)="openEditBucketModal()" title="Bucket Quotas & Security Settings">
+          <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          <span>Settings</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Bucket Metrics & Quota Info Strip -->
+    <div class="bucket-stats-strip">
+      <div class="stat-pill">
+        <span class="stat-label">Active Bucket:</span>
+        <span class="stat-value font-mono">s3://{{ currentBucket() }}/{{ currentPrefix() }}</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-label">Objects:</span>
+        <span class="stat-value">{{ files().length }} files, {{ folderPrefixes().length }} folders</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-label">Folder Size:</span>
+        <span class="stat-value">{{ formatBytes(totalBucketBytes()) }}</span>
+      </div>
+      @if (currentBucketObj()?.maxFileSize && currentBucketObj()!.maxFileSize! > 0) {
+        <div class="stat-pill">
+          <span class="stat-label">Max File Size:</span>
+          <span class="stat-value">{{ formatBytes(currentBucketObj()!.maxFileSize!) }}</span>
+        </div>
+      }
+    </div>
+
+    <!-- Bulk Selection Floating Toolbar -->
+    @if (selectedFilePaths().size > 0) {
+      <div class="bulk-toolbar animate-fade-in">
+        <div class="bulk-info">
+          <span class="selection-badge">{{ selectedFilePaths().size }}</span>
+          <span>files selected</span>
+        </div>
+        <div class="bulk-actions">
+          <button class="btn btn-secondary btn-sm" (click)="downloadSelectedAsZip()">
+            <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>
+            <span>Download ZIP</span>
+          </button>
+          <button class="btn btn-danger btn-sm" (click)="deleteSelectedFiles()">
+            <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            <span>{{ activeSubView() === 'trash' ? 'Purge Selected' : 'Move to Trash' }}</span>
+          </button>
+          <button class="btn btn-secondary btn-sm" (click)="clearSelection()">
+            Deselect All
+          </button>
+        </div>
+      </div>
+    }
+
+    <!-- Location & Breadcrumbs Bar -->
+    <div class="breadcrumbs-bar">
+      <div class="crumbs-trail">
+        <button class="breadcrumb-item" [class.active]="currentPrefix() === ''" (click)="loadFiles('')">
+          <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+          <span>Root</span>
+        </button>
+        @for (crumb of getBreadcrumbs(); track crumb.prefix) {
+          <span class="breadcrumb-separator">/</span>
+          <button class="breadcrumb-item" [class.active]="currentPrefix() === crumb.prefix" (click)="loadFiles(crumb.prefix)">
+            {{ crumb.name }}
+          </button>
+        }
+      </div>
+
+      <div class="crumbs-actions">
+        @if (currentPrefix()) {
+          <button class="btn-xs" (click)="navigateUp()" title="Go to Parent Folder">
+            <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            <span>Up One Level</span>
+          </button>
+          <button class="btn-xs" (click)="downloadFolderZip(currentPrefix())" title="Download Entire Folder as ZIP">
+            <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>
+            <span>Download Folder ZIP</span>
+          </button>
+        }
+        <button class="btn-xs" (click)="loadFiles(currentPrefix())" title="Refresh List">
+          <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+          <span>Refresh</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Explorer Content Layout with Optional Inspector Sidebar -->
+    <div class="explorer-layout" [class.has-inspector]="inspectedItem() !== null">
+      
+      <!-- Main Content Area -->
+      <div class="explorer-main">
+        
+        <!-- TABLE VIEW -->
+        @if (viewMode() === 'table') {
+          <div class="card-table">
+            <table class="files-table">
+              <thead>
+                <tr>
+                  <th style="width: 44px; text-align: center;">
+                    <input type="checkbox" [checked]="isAllSelected()" (change)="toggleSelectAll()" />
+                  </th>
+                  <th class="sortable-th" (click)="toggleSort('name')">
+                    <span>Name</span>
+                    @if (sortField() === 'name') {
+                      <span class="sort-arrow">{{ sortDirection() === 'asc' ? '↑' : '↓' }}</span>
+                    }
+                  </th>
+                  <th class="sortable-th" (click)="toggleSort('contentType')">
+                    <span>MIME / Type</span>
+                    @if (sortField() === 'contentType') {
+                      <span class="sort-arrow">{{ sortDirection() === 'asc' ? '↑' : '↓' }}</span>
+                    }
+                  </th>
+                  <th class="sortable-th" (click)="toggleSort('size')">
+                    <span>Size</span>
+                    @if (sortField() === 'size') {
+                      <span class="sort-arrow">{{ sortDirection() === 'asc' ? '↑' : '↓' }}</span>
+                    }
+                  </th>
+                  <th class="sortable-th" (click)="toggleSort('updatedAt')">
+                    <span>Updated</span>
+                    @if (sortField() === 'updatedAt') {
+                      <span class="sort-arrow">{{ sortDirection() === 'asc' ? '↑' : '↓' }}</span>
+                    }
+                  </th>
+                  <th style="text-align: right; width: 180px;">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Parent Directory Row -->
+                @if (currentPrefix()) {
+                  <tr class="folder-row parent-row" (click)="navigateUp()">
+                    <td style="text-align: center;">
+                      <svg class="svg-icon svg-icon-sm text-dim" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                    </td>
+                    <td colspan="4" class="parent-dir-cell">
+                      .. (Parent Directory)
+                    </td>
+                    <td style="text-align: right; color: var(--text-dim); font-size: 11px;">Directory</td>
+                  </tr>
+                }
+
+                <!-- Folder Rows -->
+                @for (folder of folderPrefixes(); track folder) {
+                  <tr class="folder-row">
+                    <td style="text-align: center;">
+                      <svg class="svg-icon svg-icon-sm folder-icon-color" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                    </td>
+                    <td (click)="loadFiles(folder)" class="folder-name-cell">
+                      <span class="folder-title">{{ getFolderName(folder) }}/</span>
+                    </td>
+                    <td (click)="loadFiles(folder)"><span class="badge-mime folder-badge">Directory</span></td>
+                    <td (click)="loadFiles(folder)" style="color: var(--text-dim);">—</td>
+                    <td (click)="loadFiles(folder)" style="color: var(--text-dim); font-size: 11px;">—</td>
+                    <td style="text-align: right;">
+                      <div class="row-actions">
+                        <button class="icon-btn" (click)="loadFiles(folder)" title="Open Folder">
+                          <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                        </button>
+                        <button class="icon-btn" (click)="openRenameFolderModal(folder, $event)" title="Rename Folder">
+                          <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                        </button>
+                        <button class="icon-btn" (click)="downloadFolderZip(folder, $event)" title="Download Folder ZIP">
+                          <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>
+                        </button>
+                        <button class="icon-btn danger" (click)="deleteFolder(folder, $event)" title="Delete Folder">
+                          <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+
+                <!-- File Rows -->
+                @for (f of filteredFiles(); track f.id) {
+                  <tr 
+                    [class.selected]="selectedFilePaths().has(f.path)" 
+                    [class.active-inspected]="inspectedItem()?.path === f.path"
+                    (click)="inspectItem(f, $event)">
+                    <td style="text-align: center;" (click)="$event.stopPropagation()">
+                      <input 
+                        type="checkbox" 
+                        [checked]="selectedFilePaths().has(f.path)" 
+                        (change)="toggleSelectFile(f.path, $event)" />
+                    </td>
+                    <td>
+                      <div class="file-name-cell">
+                        @if (f.contentType.startsWith('image/')) {
+                          <img [src]="getThumbnailUrl(f.downloadUrl)" class="file-thumb" alt="Thumbnail" />
+                        } @else if (f.contentType.startsWith('video/')) {
+                          <div class="file-icon icon-video">
+                            <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+                          </div>
+                        } @else if (f.contentType.startsWith('audio/')) {
+                          <div class="file-icon icon-audio">
+                            <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+                          </div>
+                        } @else if (f.contentType.includes('pdf')) {
+                          <div class="file-icon icon-pdf">
+                            <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                          </div>
+                        } @else if (isTextOrCode(f.contentType)) {
+                          <div class="file-icon icon-code">
+                            <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                          </div>
+                        } @else {
+                          <div class="file-icon icon-generic">
+                            <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
+                          </div>
+                        }
+                        <div class="file-titles">
+                          <span class="file-name">{{ f.name }}</span>
+                          <span class="file-path">{{ f.path }}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="badge-mime">{{ f.contentType }}</span>
+                    </td>
+                    <td>
+                      <span class="size-val">{{ formatBytes(f.size) }}</span>
+                    </td>
+                    <td>
+                      <span class="date-val">{{ f.updatedAt | date:'short' }}</span>
+                    </td>
+                    <td style="text-align: right;" (click)="$event.stopPropagation()">
+                      <div class="row-actions">
+                        @if (activeSubView() === 'trash') {
+                          <button class="btn btn-secondary btn-xs" (click)="restoreSingleFile(f, $event)">Restore</button>
+                          <button class="icon-btn danger" (click)="deleteFile(f, true, $event)" title="Purge Permanently">
+                            <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                          </button>
+                        } @else {
+                          <button class="icon-btn" (click)="openPreviewModal(f, $event)" title="Quick Preview">
+                            <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                          </button>
+                          <button class="icon-btn" (click)="openShareModal(f, $event)" title="Public Share Link">
+                            <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                          </button>
+                          <button class="icon-btn" (click)="openSignedUrlModal(f, $event)" title="Expiring Signed Link">
+                            <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                          </button>
+                          <button class="icon-btn" (click)="openRenameModal(f, $event)" title="Rename File">
+                            <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                          </button>
+                          <button class="icon-btn" (click)="openMoveModal(f, $event)" title="Move File">
+                            <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polyline points="5 9 2 12 5 15"></polyline><polyline points="9 5 12 2 15 5"></polyline><polyline points="15 19 12 22 9 19"></polyline><polyline points="19 9 22 12 19 15"></polyline><line x1="2" y1="12" x2="22" y2="12"></line><line x1="12" y1="2" x2="12" y2="22"></line></svg>
+                          </button>
+                          <button class="icon-btn danger" (click)="deleteFile(f, false, $event)" title="Move to Trash">
+                            <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                          </button>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                }
+
+                @if (filteredFiles().length === 0 && folderPrefixes().length === 0) {
+                  <tr>
+                    <td colspan="6" class="empty-state-cell">
+                      <div class="empty-dropzone-box" (click)="fileInput.click()">
+                        <div class="dropzone-icon-circle">
+                          <svg class="svg-icon svg-icon-lg" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                        </div>
+                        <h4>{{ activeSubView() === 'trash' ? 'Trash Bin is Empty' : 'This Folder is Empty' }}</h4>
+                        <p class="dropzone-hint">
+                          {{ activeSubView() === 'trash' ? 'Deleted files will appear here.' : 'Drag & drop files here or click anywhere in this box to upload' }}
+                        </p>
+                        @if (activeSubView() !== 'trash') {
+                          <div class="dropzone-actions" (click)="$event.stopPropagation()">
+                            <button class="btn btn-primary" (click)="fileInput.click()">
+                              <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                              <span>Upload Files</span>
+                            </button>
+                            <button class="btn btn-secondary" (click)="openNewFolderModal()">
+                              <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><line x1="12" y1="11" x2="12" y2="17"></line><line x1="9" y1="14" x2="15" y2="14"></line></svg>
+                              <span>New Folder</span>
+                            </button>
+                          </div>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+
+        <!-- GRID / CARD VIEW -->
+        @if (viewMode() === 'grid') {
+          <div class="cards-grid">
+            <!-- Folder Cards -->
+            @for (folder of folderPrefixes(); track folder) {
+              <div class="grid-card folder-card" (click)="loadFiles(folder)">
+                <div class="card-thumb folder-thumb">
+                  <svg class="svg-icon svg-icon-lg folder-icon-color" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                </div>
+                <div class="card-details">
+                  <span class="card-title">{{ getFolderName(folder) }}/</span>
+                  <span class="card-meta">Directory</span>
+                </div>
+                <div class="card-hover-actions" (click)="$event.stopPropagation()">
+                  <button class="icon-btn" (click)="openRenameFolderModal(folder, $event)" title="Rename">
+                    <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                  </button>
+                  <button class="icon-btn danger" (click)="deleteFolder(folder, $event)" title="Delete">
+                    <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                  </button>
+                </div>
+              </div>
+            }
+
+            <!-- File Cards -->
+            @for (f of filteredFiles(); track f.id) {
+              <div 
+                class="grid-card file-card" 
+                [class.selected]="selectedFilePaths().has(f.path)"
+                [class.active-inspected]="inspectedItem()?.path === f.path"
+                (click)="inspectItem(f, $event)">
+                
+                <div class="card-select-check" (click)="$event.stopPropagation()">
+                  <input 
+                    type="checkbox" 
+                    [checked]="selectedFilePaths().has(f.path)" 
+                    (change)="toggleSelectFile(f.path, $event)" />
+                </div>
+
+                <div class="card-thumb">
+                  @if (f.contentType.startsWith('image/')) {
+                    <img [src]="getThumbnailUrl(f.downloadUrl)" class="grid-img" alt="Thumbnail" />
+                  } @else if (f.contentType.startsWith('video/')) {
+                    <div class="grid-file-icon icon-video">
+                      <svg class="svg-icon svg-icon-lg" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+                    </div>
+                  } @else if (f.contentType.startsWith('audio/')) {
+                    <div class="grid-file-icon icon-audio">
+                      <svg class="svg-icon svg-icon-lg" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+                    </div>
+                  } @else if (f.contentType.includes('pdf')) {
+                    <div class="grid-file-icon icon-pdf">
+                      <svg class="svg-icon svg-icon-lg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                    </div>
+                  } @else {
+                    <div class="grid-file-icon icon-generic">
+                      <svg class="svg-icon svg-icon-lg" viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
+                    </div>
+                  }
+                </div>
+
+                <div class="card-details">
+                  <span class="card-title" [title]="f.name">{{ f.name }}</span>
+                  <div class="card-sub-info">
+                    <span>{{ formatBytes(f.size) }}</span>
+                    <span>•</span>
+                    <span>{{ f.updatedAt | date:'shortDate' }}</span>
+                  </div>
+                </div>
+
+                <div class="card-hover-actions" (click)="$event.stopPropagation()">
+                  <button class="icon-btn" (click)="openPreviewModal(f, $event)" title="Preview">
+                    <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  </button>
+                  <button class="icon-btn" (click)="openShareModal(f, $event)" title="Share">
+                    <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle></svg>
+                  </button>
+                  <button class="icon-btn danger" (click)="deleteFile(f, false, $event)" title="Delete">
+                    <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                  </button>
+                </div>
+              </div>
+            }
+
+            @if (filteredFiles().length === 0 && folderPrefixes().length === 0) {
+              <div class="empty-dropzone-box grid-span-all" (click)="fileInput.click()">
+                <div class="dropzone-icon-circle">
+                  <svg class="svg-icon svg-icon-lg" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                </div>
+                <h4>{{ activeSubView() === 'trash' ? 'Trash Bin is Empty' : 'This Folder is Empty' }}</h4>
+                <p class="dropzone-hint">
+                  {{ activeSubView() === 'trash' ? 'Deleted files will appear here.' : 'Drag & drop files here or click anywhere in this box to upload' }}
+                </p>
+                @if (activeSubView() !== 'trash') {
+                  <div class="dropzone-actions" (click)="$event.stopPropagation()">
+                    <button class="btn btn-primary" (click)="fileInput.click()">
+                      <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                      <span>Upload Files</span>
+                    </button>
+                    <button class="btn btn-secondary" (click)="openNewFolderModal()">
+                      <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><line x1="12" y1="11" x2="12" y2="17"></line><line x1="9" y1="14" x2="15" y2="14"></line></svg>
+                      <span>New Folder</span>
+                    </button>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Inspector Slide-Over Panel (Right Side) -->
+      @if (inspectedItem()) {
+        <aside class="inspector-panel animate-slide-in">
+          <div class="inspector-header">
+            <h3>Object Inspector</h3>
+            <button class="close-btn" (click)="closeInspector()">✕</button>
+          </div>
+
+          <div class="inspector-preview">
+            @if (inspectedItem()?.contentType?.startsWith('image/')) {
+              <img [src]="getDirectDownloadUrl(inspectedItem()!)" class="inspector-img-preview" alt="Preview" />
+            } @else {
+              <div class="inspector-type-box">
+                <svg class="svg-icon svg-icon-xl" viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
+                <span class="inspector-type-label">{{ inspectedItem()?.contentType }}</span>
+              </div>
+            }
+          </div>
+
+          <div class="inspector-content">
+            <h4 class="inspector-filename" [title]="inspectedItem()?.name">{{ inspectedItem()?.name }}</h4>
+
+            <!-- Quick Action Pills -->
+            <div class="inspector-actions">
+              <button class="btn btn-primary btn-sm" (click)="openPreviewModal(inspectedItem()!)">
+                <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                <span>Preview</span>
+              </button>
+              <a class="btn btn-secondary btn-sm" [href]="getDirectDownloadUrl(inspectedItem()!)" target="_blank" download>
+                <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                <span>Download</span>
+              </a>
+              <button class="btn btn-secondary btn-sm" (click)="openShareModal(inspectedItem()!)">
+                <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle></svg>
+                <span>Share</span>
+              </button>
+            </div>
+
+            <div class="inspector-section">
+              <h5>Access URLs</h5>
+              <div class="copy-url-row">
+                <div class="url-text font-mono">{{ getS3Uri(inspectedItem()!) }}</div>
+                <button class="btn-xs" (click)="copyText(getS3Uri(inspectedItem()!), 'S3 URI Copied!')">S3 URI</button>
+              </div>
+              <div class="copy-url-row">
+                <div class="url-text font-mono">{{ getDirectDownloadUrl(inspectedItem()!) }}</div>
+                <button class="btn-xs" (click)="copyText(getDirectDownloadUrl(inspectedItem()!), 'Download URL Copied!')">HTTP</button>
+              </div>
+            </div>
+
+            <div class="inspector-section">
+              <h5>File Attributes</h5>
+              <div class="attr-grid">
+                <div class="attr-row">
+                  <span class="attr-k">Size</span>
+                  <span class="attr-v">{{ formatBytes(inspectedItem()?.size || 0) }}</span>
+                </div>
+                <div class="attr-row">
+                  <span class="attr-k">MIME</span>
+                  <span class="attr-v font-mono">{{ inspectedItem()?.contentType }}</span>
+                </div>
+                <div class="attr-row">
+                  <span class="attr-k">Version</span>
+                  <span class="attr-v">v{{ inspectedItem()?.version || 1 }}</span>
+                </div>
+                <div class="attr-row">
+                  <span class="attr-k">Updated</span>
+                  <span class="attr-v">{{ inspectedItem()?.updatedAt | date:'medium' }}</span>
+                </div>
+                <div class="attr-row">
+                  <span class="attr-k">SHA-256</span>
+                  <span class="attr-v font-mono" [title]="inspectedItem()?.sha256Hash">{{ inspectedItem()?.sha256Hash?.substring(0, 14) }}...</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="inspector-section">
+              <h5>Management</h5>
+              <div class="management-buttons">
+                <button class="btn btn-secondary btn-sm" (click)="openRenameModal(inspectedItem()!)">Rename</button>
+                <button class="btn btn-secondary btn-sm" (click)="openMoveModal(inspectedItem()!)">Move / Copy</button>
+                <button class="btn btn-secondary btn-sm" (click)="openVersionHistoryModal(inspectedItem()!)">Revisions</button>
+                <button class="btn btn-secondary btn-sm" (click)="openSignedUrlModal(inspectedItem()!)">Signed URL</button>
+                <button class="btn btn-secondary btn-sm" (click)="rotateToken(inspectedItem()!)">Rotate Token</button>
+                <button class="btn btn-danger btn-sm" (click)="deleteFile(inspectedItem()!, false)">Delete</button>
+              </div>
+            </div>
+          </div>
+        </aside>
+      }
+    </div>
+  </div>
+
+  <!-- Active Uploads Floating Queue Monitor -->
+  @if (activeUploads().length > 0) {
+    <div class="upload-monitor animate-slide-up">
+      <div class="upload-monitor-header">
+        <span>Uploading {{ activeUploads().length }} file(s)...</span>
+      </div>
+      <div class="upload-task-list">
+        @for (task of activeUploads(); track task.filename) {
+          <div class="upload-task">
+            <div class="upload-task-info">
+              <span class="task-fname">{{ task.filename }}</span>
+              <span class="task-pct">{{ task.progress }}%</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-bar" [style.width.%]="task.progress"></div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: In-Browser Multi-Format Preview -->
+  @if (showPreviewModal() && previewFile()) {
+    <div class="modal-backdrop" (click)="closePreviewModal()">
+      <div class="modal-card modal-preview" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="preview-title-wrap">
+            <span class="preview-type-badge">{{ previewFile()?.contentType }}</span>
+            <h3 class="preview-filename">{{ previewFile()?.name }}</h3>
+            <span class="preview-size-badge">{{ formatBytes(previewFile()?.size || 0) }}</span>
+          </div>
+          <div class="preview-header-actions">
+            @if (previewFile()?.contentType?.startsWith('image/')) {
+              <div class="preview-zoom-toolbar">
+                <button class="icon-btn-sm" (click)="zoomOut()" title="Zoom Out" [disabled]="previewZoom() <= 25">−</button>
+                <span class="zoom-level">{{ previewZoom() }}%</span>
+                <button class="icon-btn-sm" (click)="zoomIn()" title="Zoom In" [disabled]="previewZoom() >= 400">+</button>
+                <button class="icon-btn-sm" (click)="resetZoom()" title="Reset Zoom">1:1</button>
+              </div>
+            }
+            <button class="close-btn" (click)="closePreviewModal()" title="Close (Esc)">✕</button>
+          </div>
+        </div>
+
+        <div class="preview-viewport">
+          @if (previewFile()?.contentType?.startsWith('image/')) {
+            <div class="preview-media-box">
+              @if (previewImageLoading()) {
+                <div class="preview-loading-overlay">
+                  <div class="spinner-ring"></div>
+                  <span>Loading preview...</span>
+                </div>
+              }
+              @if (previewImageError()) {
+                <div class="preview-error-box">
+                  <svg class="svg-icon svg-icon-lg text-danger" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                  <h4>Failed to load image preview</h4>
+                  <p>The image could not be rendered directly. You can open it in a new tab or download it.</p>
+                  <div style="display: flex; gap: 8px; margin-top: 12px;">
+                    <a class="btn btn-secondary btn-sm" [href]="getDirectDownloadUrl(previewFile()!)" target="_blank">Open in New Tab</a>
+                    <a class="btn btn-primary btn-sm" [href]="getDirectDownloadUrl(previewFile()!)" target="_blank" download>Download File</a>
+                  </div>
+                </div>
+              }
+              <img 
+                [src]="getDirectDownloadUrl(previewFile()!)" 
+                class="viewport-img" 
+                [style.transform]="'scale(' + (previewZoom() / 100) + ')'"
+                (load)="onPreviewImageLoaded()" 
+                (error)="onPreviewImageFailed()" 
+                alt="Preview" />
+            </div>
+          } @else if (previewFile()?.contentType?.startsWith('video/')) {
+            <div class="preview-media-box">
+              <video [src]="getDirectDownloadUrl(previewFile()!)" controls autoplay class="viewport-video"></video>
+            </div>
+          } @else if (previewFile()?.contentType?.startsWith('audio/')) {
+            <div class="preview-audio-box">
+              <div class="audio-waveform-icon">
+                <svg class="svg-icon svg-icon-xl" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+              </div>
+              <h4>{{ previewFile()?.name }}</h4>
+              <audio [src]="getDirectDownloadUrl(previewFile()!)" controls autoplay class="viewport-audio"></audio>
+            </div>
+          } @else if (previewFile()?.contentType === 'application/pdf') {
+            <iframe [src]="previewSafeUrl()" class="viewport-iframe"></iframe>
+          } @else if (previewTextContent() || previewLoading()) {
+            <div class="code-viewport">
+              @if (previewLoading()) {
+                <div class="preview-loading-overlay">
+                  <div class="spinner-ring"></div>
+                  <span>Fetching text contents...</span>
+                </div>
+              } @else {
+                <pre><code>{{ previewTextContent() }}</code></pre>
+              }
+            </div>
+          } @else {
+            <div class="generic-preview-box">
+              <svg class="svg-icon svg-icon-xl" viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
+              <h4>No in-browser preview renderer for this format</h4>
+              <p>{{ formatBytes(previewFile()?.size || 0) }} • SHA-256: <code>{{ previewFile()?.sha256Hash }}</code></p>
+              <div style="display: flex; gap: 8px; margin-top: 12px;">
+                <a class="btn btn-secondary btn-sm" [href]="getDirectDownloadUrl(previewFile()!)" target="_blank">Open Raw Stream</a>
+                <a class="btn btn-primary btn-sm" [href]="getDirectDownloadUrl(previewFile()!)" target="_blank" download>Download File</a>
+              </div>
+            </div>
+          }
+        </div>
+
+        <div class="modal-footer">
+          <div class="footer-meta-wrap">
+            <span class="footer-label">Direct Link:</span>
+            <span class="footer-meta font-mono">{{ getDirectDownloadUrl(previewFile()!) }}</span>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <a class="btn btn-secondary btn-sm" [href]="getDirectDownloadUrl(previewFile()!)" target="_blank">Open Tab</a>
+            <button class="btn btn-secondary btn-sm" (click)="copyText(getDirectDownloadUrl(previewFile()!), 'Download URL Copied!')">Copy Link</button>
+            <a class="btn btn-primary btn-sm" [href]="getDirectDownloadUrl(previewFile()!)" target="_blank" download>Download</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: Public Share Link -->
+  @if (showShareModal() && shareTargetFile()) {
+    <div class="modal-backdrop" (click)="showShareModal.set(false)">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>Create Public Share Link</h3>
+          <button class="close-btn" (click)="showShareModal.set(false)">✕</button>
+        </div>
+
+        <p class="modal-desc">Generate a secure, expiring, password-protected public share link for <strong>{{ shareTargetFile()?.name }}</strong>.</p>
+
+        @if (!generatedShare()) {
+          <div class="form-group">
+            <label>Expiration Period</label>
+            <select class="form-control" [ngModel]="shareExpiresDays()" (ngModelChange)="shareExpiresDays.set($event)">
+              <option [value]="1">1 Day</option>
+              <option [value]="7">7 Days (Default)</option>
+              <option [value]="30">30 Days</option>
+              <option [value]="0">Never (Unlimited)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Password Protection (Optional)</label>
+            <input type="password" class="form-control" placeholder="Leave empty for public access" [ngModel]="sharePassword()" (ngModelChange)="sharePassword.set($event)" />
+          </div>
+
+          <div class="form-group">
+            <label>Max Downloads Allowed (0 = Unlimited)</label>
+            <input type="number" class="form-control" placeholder="0" [ngModel]="shareMaxDownloads()" (ngModelChange)="shareMaxDownloads.set($event)" />
+          </div>
+
+          <div class="modal-actions">
+            <button class="btn btn-secondary" (click)="showShareModal.set(false)">Cancel</button>
+            <button class="btn btn-primary" (click)="submitCreateShare()">Generate Share Link</button>
+          </div>
+        } @else {
+          <div class="share-result-box animate-fade-in">
+            <div class="success-icon">✓</div>
+            <h4>Public Share Link Active!</h4>
+            <div class="form-group">
+              <input type="text" class="form-control font-mono" [value]="generatedShare()?.shareUrl" readonly />
+            </div>
+            <div class="modal-actions">
+              <button class="btn btn-primary" (click)="copyText(generatedShare()!.shareUrl, 'Share URL copied to clipboard!')">Copy Link</button>
+              <button class="btn btn-secondary" (click)="showShareModal.set(false)">Done</button>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: Expiring Signed URL -->
+  @if (showSignedModal() && targetSignFile()) {
+    <div class="modal-backdrop" (click)="showSignedModal.set(false)">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>Generate Expiring Signed URL</h3>
+          <button class="close-btn" (click)="showSignedModal.set(false)">✕</button>
+        </div>
+
+        <p class="modal-desc">Generates a cryptographically signed HMAC token granting temporary read access.</p>
+
+        <div class="form-group">
+          <label>Link Valid Duration</label>
+          <select class="form-control" (change)="onDurationChange($event)">
+            <option value="900">15 Minutes</option>
+            <option value="3600" selected>1 Hour</option>
+            <option value="86400">24 Hours</option>
+            <option value="604800">7 Days</option>
+          </select>
+        </div>
+
+        <div class="modal-actions" style="margin-bottom: 16px;">
+          <button class="btn btn-primary" (click)="generateSignedUrl()">Sign URL</button>
+        </div>
+
+        @if (generatedSignedUrl()) {
+          <div class="form-group animate-fade-in">
+            <label>Signed URL</label>
+            <div style="display: flex; gap: 8px;">
+              <input type="text" class="form-control font-mono" [value]="generatedSignedUrl()" readonly />
+              <button class="btn btn-secondary" (click)="copyText(generatedSignedUrl(), 'Signed URL Copied!')">Copy</button>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: Version History -->
+  @if (showVersionModal() && targetVersionFile()) {
+    <div class="modal-backdrop" (click)="showVersionModal.set(false)">
+      <div class="modal-card modal-lg" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>Revisions for {{ targetVersionFile()?.name }}</h3>
+          <button class="close-btn" (click)="showVersionModal.set(false)">✕</button>
+        </div>
+
+        <div class="versions-table-wrap">
+          <table class="files-table">
+            <thead>
+              <tr>
+                <th>Version</th>
+                <th>Size</th>
+                <th>SHA-256</th>
+                <th>Snapshot Date</th>
+                <th style="text-align: right;">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (v of fileVersions(); track v.id) {
+                <tr>
+                  <td><strong>v{{ v.version }}</strong></td>
+                  <td>{{ formatBytes(v.size) }}</td>
+                  <td class="font-mono">{{ v.sha256Hash?.substring(0, 12) }}...</td>
+                  <td style="font-size: 11px;">{{ v.createdAt | date:'medium' }}</td>
+                  <td style="text-align: right;">
+                    <a class="btn btn-secondary btn-xs" [href]="getGatewayUrl(targetVersionFile()!)" target="_blank">Download</a>
+                  </td>
+                </tr>
+              }
+              @if (fileVersions().length === 0) {
+                <tr>
+                  <td colspan="5" class="empty-state">No historical revisions recorded for this object.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: Rename -->
+  @if (showRenameModal()) {
+    <div class="modal-backdrop" (click)="showRenameModal.set(false)">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>Rename {{ renameTarget() ? 'File' : 'Folder' }}</h3>
+          <button class="close-btn" (click)="showRenameModal.set(false)">✕</button>
+        </div>
+
+        <div class="form-group">
+          <label>New Name</label>
+          <input 
+            type="text" 
+            class="form-control" 
+            [ngModel]="renameInput()" 
+            (ngModelChange)="renameInput.set($event)" 
+            (keyup.enter)="submitRename()"
+            placeholder="Enter new name..." />
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-secondary" (click)="showRenameModal.set(false)">Cancel</button>
+          <button class="btn btn-primary" (click)="submitRename()">Rename</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: Move / Copy -->
+  @if (showMoveCopyModal() && moveCopyTarget()) {
+    <div class="modal-backdrop" (click)="showMoveCopyModal.set(false)">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>{{ moveCopyIsMove() ? 'Move' : 'Copy' }} File</h3>
+          <button class="close-btn" (click)="showMoveCopyModal.set(false)">✕</button>
+        </div>
+
+        <p class="modal-desc">Target: <strong>{{ moveCopyTarget()?.name }}</strong></p>
+
+        <div class="form-group">
+          <label>Destination Bucket</label>
+          <select class="form-control" [ngModel]="moveCopyDstBucket()" (ngModelChange)="moveCopyDstBucket.set($event)">
+            @for (b of buckets(); track b.name) {
+              <option [value]="b.name">{{ b.name }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Destination Path (including filename)</label>
+          <input type="text" class="form-control font-mono" [ngModel]="moveCopyDstPath()" (ngModelChange)="moveCopyDstPath.set($event)" />
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-secondary" (click)="showMoveCopyModal.set(false)">Cancel</button>
+          <button class="btn btn-primary" (click)="submitMoveCopy()">{{ moveCopyIsMove() ? 'Move' : 'Copy' }}</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: New Bucket -->
+  @if (showNewBucketModal()) {
+    <div class="modal-backdrop" (click)="showNewBucketModal.set(false)">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>Create Storage Bucket</h3>
+          <button class="close-btn" (click)="showNewBucketModal.set(false)">✕</button>
+        </div>
+
+        <div class="form-group">
+          <label>Bucket Name</label>
+          <input #newBucketNameInput type="text" class="form-control font-mono" placeholder="e.g. assets-prod" />
+          <small class="form-hint">Lowercase letters, numbers, and hyphens only.</small>
+        </div>
+
+        <div class="form-group">
+          <label>Description</label>
+          <input #newBucketDescInput type="text" class="form-control" placeholder="e.g. Production media assets" />
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-secondary" (click)="showNewBucketModal.set(false)">Cancel</button>
+          <button class="btn btn-primary" (click)="createNewBucket(newBucketNameInput.value, newBucketDescInput.value)">Create Bucket</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: New Folder -->
+  @if (showNewFolderModal()) {
+    <div class="modal-backdrop" (click)="showNewFolderModal.set(false)">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>Create New Folder</h3>
+          <button class="close-btn" (click)="showNewFolderModal.set(false)">✕</button>
+        </div>
+
+        <div class="form-group">
+          <label>Folder Name</label>
+          <input 
+            type="text" 
+            class="form-control" 
+            [ngModel]="newFolderName()" 
+            (ngModelChange)="newFolderName.set($event)" 
+            (keyup.enter)="createFolder()"
+            placeholder="e.g. documents, invoices, 2026..." />
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-secondary" (click)="showNewFolderModal.set(false)">Cancel</button>
+          <button class="btn btn-primary" (click)="createFolder()">Create Folder</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: Bucket Settings & Quotas -->
+  @if (showEditBucketModal()) {
+    <div class="modal-backdrop" (click)="showEditBucketModal.set(false)">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>Bucket Quotas & Settings</h3>
+          <button class="close-btn" (click)="showEditBucketModal.set(false)">✕</button>
+        </div>
+
+        <div class="form-group">
+          <label>Bucket Name</label>
+          <input type="text" class="form-control font-mono" [value]="editBucketData().name" readonly />
+        </div>
+
+        <div class="form-group">
+          <label>Description</label>
+          <input type="text" class="form-control" [ngModel]="editBucketData().description" (ngModelChange)="editBucketData().description = $event" />
+        </div>
+
+        <div class="form-group">
+          <label>Public Access Policy</label>
+          <select class="form-control" [ngModel]="editBucketData().isPublic" (ngModelChange)="editBucketData().isPublic = $event">
+            <option [ngValue]="true">Public (Direct anonymous read allowed)</option>
+            <option [ngValue]="false">Private (Authenticated API keys or signed URLs required)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Max Single File Size (Bytes, 0 = Unlimited)</label>
+          <input type="number" class="form-control" [ngModel]="editBucketData().maxFileSize" (ngModelChange)="editBucketData().maxFileSize = $event" />
+        </div>
+
+        <div class="form-group">
+          <label>Allowed MIME Types (Comma separated, e.g. image/*, video/*)</label>
+          <input type="text" class="form-control" [ngModel]="editBucketData().allowedMimes" (ngModelChange)="editBucketData().allowedMimes = $event" />
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-secondary" (click)="showEditBucketModal.set(false)">Cancel</button>
+          <button class="btn btn-primary" (click)="saveBucketSettings()">Save Configuration</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: Bucket Lifecycle & Retention -->
+  @if (showLifecycleModal()) {
+    <div class="modal-backdrop" (click)="showLifecycleModal.set(false)">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>Bucket Retention & Lifecycle Policies</h3>
+          <button class="close-btn" (click)="showLifecycleModal.set(false)">✕</button>
+        </div>
+
+        <p class="modal-desc">Automated maintenance rules executed regularly by Prolead File background workers.</p>
+
+        <div class="form-group">
+          <label>Trash Purge Days (0 = Disabled)</label>
+          <input type="number" class="form-control" [(ngModel)]="lifecycleRule().trashDays" />
+          <small class="form-hint">Permanently purge soft-deleted files after X days.</small>
+        </div>
+
+        <div class="form-group">
+          <label>Historical Version Limit (0 = Unlimited)</label>
+          <input type="number" class="form-control" [(ngModel)]="lifecycleRule().versionLimit" />
+          <small class="form-hint">Retain at most X previous snapshots per file.</small>
+        </div>
+
+        <div class="form-group">
+          <label>Auto-Expiration TTL (Days, 0 = Disabled)</label>
+          <input type="number" class="form-control" [(ngModel)]="lifecycleRule().expirationDays" />
+          <small class="form-hint">Auto-delete active objects after X days.</small>
+        </div>
+
+        <div class="modal-actions" style="margin-top: 24px;">
+          <button class="btn btn-secondary" (click)="triggerLifecycleSweep()">Trigger Sweep Now</button>
+          <button class="btn btn-secondary" (click)="triggerScrubber()">CAS Integrity Scrub</button>
+          <button class="btn btn-primary" (click)="saveLifecycleRule()">Save Policies</button>
+        </div>
+      </div>
+    </div>
+  }
+
+</div>
