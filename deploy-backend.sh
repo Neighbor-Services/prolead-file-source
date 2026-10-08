@@ -21,9 +21,9 @@ BASE_PORT=8080 # Instances will run on 8081, 8082, 8083, ...
 DEFAULT_DOMAIN="file.proleadsolutions.co"
 
 # Database Defaults
-DB_TYPE="sqlite" # sqlite or postgres
-DB_NAME="gostore_db"
-DB_USER="gostore"
+DB_TYPE="" # sqlite or postgres
+DB_NAME=""
+DB_USER=""
 DB_PASSWORD=""
 
 # Cloudflare Cache Purge (optional)
