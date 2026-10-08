@@ -1,8 +1,9 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { SidebarComponent } from '../sidebar/sidebar.component';
 import { NavbarComponent } from '../navbar/navbar.component';
+import { GoStoreService } from '../../services/gostore.service';
 
 @Component({
   selector: 'app-layout',
@@ -11,4 +12,6 @@ import { NavbarComponent } from '../navbar/navbar.component';
   templateUrl: './layout.component.html',
   styleUrl: './layout.component.css'
 })
-export class LayoutComponent {}
+export class LayoutComponent {
+  goStore = inject(GoStoreService);
+}

@@ -13,7 +13,7 @@ import { Project, StorageEvent } from '../../services/gostore.models';
   styleUrl: './sidebar.component.css'
 })
 export class SidebarComponent implements OnInit, OnDestroy {
-  private goStore = inject(GoStoreService);
+  goStore = inject(GoStoreService);
   private router = inject(Router);
   private sseSub?: Subscription;
 
@@ -22,6 +22,10 @@ export class SidebarComponent implements OnInit, OnDestroy {
   projects = signal<Project[]>([]);
   latestEvents = signal<StorageEvent[]>([]);
   showProjDropdown = signal<boolean>(false);
+
+  closeSidebar(): void {
+    this.goStore.closeMobileSidebar();
+  }
 
   ngOnInit(): void {
     this.loadProjects();

@@ -13,7 +13,7 @@ import { Project } from '../../services/gostore.models';
   styleUrl: './navbar.component.css'
 })
 export class NavbarComponent implements OnInit {
-  private goStore = inject(GoStoreService);
+  goStore = inject(GoStoreService);
   themeService = inject(ThemeService);
   private router = inject(Router);
 

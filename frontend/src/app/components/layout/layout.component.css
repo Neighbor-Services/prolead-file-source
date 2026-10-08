@@ -5,13 +5,30 @@
   background-color: var(--bg-main);
   color: var(--text-main);
   overflow: hidden;
+  position: relative;
   transition: var(--transition);
+}
+
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 90;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .app-main-wrapper {
   display: flex;
   flex-direction: column;
   flex: 1;
+  min-width: 0;
   height: 100vh;
   overflow: hidden;
   position: relative;
@@ -21,7 +38,9 @@
 
 .main-container {
   flex: 1;
+  min-width: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   position: relative;
   background-color: var(--bg-main);
   color: var(--text-main);
@@ -29,4 +48,5 @@
     radial-gradient(circle at 10% 10%, var(--bg-radial-1) 0%, transparent 35%),
     radial-gradient(circle at 90% 90%, var(--bg-radial-2) 0%, transparent 40%);
   transition: var(--transition);
+  -webkit-overflow-scrolling: touch;
 }

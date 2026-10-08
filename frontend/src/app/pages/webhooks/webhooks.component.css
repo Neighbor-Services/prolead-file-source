@@ -1049,9 +1049,15 @@
 }
 
 @media (max-width: 768px) {
-  .webhooks-container { padding: 20px; }
-  .header-section { flex-direction: column; align-items: stretch; }
+  .webhooks-container { padding: 16px 12px 48px; }
+  .header-section { flex-direction: column; align-items: stretch; gap: 14px; }
+  .header-actions { width: 100%; flex-direction: column; }
+  .header-actions .btn-primary { width: 100%; justify-content: center; }
   .kpi-grid { grid-template-columns: 1fr; }
-  .filter-toolbar { flex-direction: column; align-items: stretch; }
+  .filter-toolbar { flex-direction: column; align-items: stretch; gap: 10px; }
   .search-box { max-width: none; }
+  .segmented-filters { overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
+  .filter-tab { white-space: nowrap; }
+  .glass-table-card { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .modal-card { max-width: 95vw; margin: 8px; }
 }

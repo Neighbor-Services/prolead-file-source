@@ -38,6 +38,7 @@ export class GoStoreService {
   private apiKey = 'gostore-master-secret-key';
 
   currentUser = signal<UserProfile | null>(null);
+  mobileSidebarOpen = signal<boolean>(false);
   currentProject = signal<Project>({
     id: 'p-default',
     name: 'Default Project',
@@ -46,6 +47,14 @@ export class GoStoreService {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   });
+
+  toggleMobileSidebar(): void {
+    this.mobileSidebarOpen.update(v => !v);
+  }
+
+  closeMobileSidebar(): void {
+    this.mobileSidebarOpen.set(false);
+  }
 
   constructor() {
     const savedKey = localStorage.getItem('gostore_api_key');

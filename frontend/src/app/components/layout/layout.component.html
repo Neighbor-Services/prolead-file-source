@@ -1,4 +1,9 @@
-<div class="app-layout">
+<div class="app-layout" [class.mobile-sidebar-open]="goStore.mobileSidebarOpen()">
+  <!-- Backdrop for mobile drawer -->
+  @if (goStore.mobileSidebarOpen()) {
+    <div class="sidebar-backdrop" (click)="goStore.closeMobileSidebar()"></div>
+  }
+
   <!-- Modular Standalone Sidebar -->
   <app-sidebar></app-sidebar>
 

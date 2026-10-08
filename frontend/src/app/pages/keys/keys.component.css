@@ -752,3 +752,64 @@
 .svg-icon-sm { width: 15px; height: 15px; }
 .svg-icon-xs { width: 13px; height: 13px; }
 .svg-icon-xl { width: 44px; height: 44px; }
+
+/* Responsive Media Queries */
+@media (max-width: 768px) {
+  .keys-page {
+    padding: 16px 12px 48px;
+  }
+
+  .page-title-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+
+  .page-title-row .btn-primary {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .toolbar-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .search-box {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .filter-pills {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+  }
+
+  .pill-btn {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .card-table {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .form-row {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .modal-card {
+    max-width: 95vw;
+    margin: 8px;
+    padding: 16px;
+  }
+}
