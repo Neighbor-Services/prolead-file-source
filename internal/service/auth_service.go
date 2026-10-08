@@ -2,9 +2,14 @@ package service
 
 import (
 	"context"
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -59,11 +64,13 @@ func (s *AuthService) Login(ctx context.Context, username, password string) (*Lo
 		return nil, errors.New("invalid username or password")
 	}
 
-	token := "usr_" + generateRandomToken()
+	expiresAt := time.Now().Add(7 * 24 * time.Hour)
+	token := s.generateSignedToken(user, expiresAt)
+
 	s.mu.Lock()
 	s.sessions[token] = &userSession{
 		User:      user,
-		ExpiresAt: time.Now().Add(24 * time.Hour),
+		ExpiresAt: expiresAt,
 	}
 	s.mu.Unlock()
 
@@ -118,22 +125,78 @@ func (s *AuthService) ValidateToken(token string) *domain.User {
 		}
 	}
 
+	// 1. Fast path: check in-memory cache
 	s.mu.RLock()
 	sess, exists := s.sessions[token]
 	s.mu.RUnlock()
 
-	if !exists || sess == nil {
-		return nil
-	}
-
-	if time.Now().After(sess.ExpiresAt) {
+	if exists && sess != nil {
+		if time.Now().Before(sess.ExpiresAt) {
+			return sess.User
+		}
 		s.mu.Lock()
 		delete(s.sessions, token)
 		s.mu.Unlock()
-		return nil
 	}
 
-	return sess.User
+	// 2. Stateless cryptographic verification (works across cluster nodes and restarts)
+	if strings.HasPrefix(token, "usr_") {
+		raw := strings.TrimPrefix(token, "usr_")
+		parts := strings.Split(raw, ".")
+		if len(parts) == 2 {
+			b64Payload, sig := parts[0], parts[1]
+			secret := s.masterAPIKey
+			if secret == "" {
+				secret = "gostore-default-signing-secret"
+			}
+			mac := hmac.New(sha256.New, []byte(secret))
+			mac.Write([]byte(b64Payload))
+			expectedSig := hex.EncodeToString(mac.Sum(nil))
+
+			if hmac.Equal([]byte(sig), []byte(expectedSig)) {
+				payloadBytes, err := base64.RawURLEncoding.DecodeString(b64Payload)
+				if err == nil {
+					payloadParts := strings.Split(string(payloadBytes), ":")
+					if len(payloadParts) >= 4 {
+						id := payloadParts[0]
+						username := payloadParts[1]
+						isSuperuser := payloadParts[2] == "true"
+						expiresUnix, _ := strconv.ParseInt(payloadParts[3], 10, 64)
+
+						if time.Now().Unix() < expiresUnix {
+							user := &domain.User{
+								ID:          id,
+								Username:    username,
+								IsSuperuser: isSuperuser,
+							}
+							s.mu.Lock()
+							s.sessions[token] = &userSession{
+								User:      user,
+								ExpiresAt: time.Unix(expiresUnix, 0),
+							}
+							s.mu.Unlock()
+							return user
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func (s *AuthService) generateSignedToken(user *domain.User, expiresAt time.Time) string {
+	payload := fmt.Sprintf("%s:%s:%t:%d", user.ID, user.Username, user.IsSuperuser, expiresAt.Unix())
+	b64Payload := base64.RawURLEncoding.EncodeToString([]byte(payload))
+	secret := s.masterAPIKey
+	if secret == "" {
+		secret = "gostore-default-signing-secret"
+	}
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write([]byte(b64Payload))
+	sig := hex.EncodeToString(mac.Sum(nil))
+	return "usr_" + b64Payload + "." + sig
 }
 
 func generateRandomToken() string {
@@ -141,3 +204,4 @@ func generateRandomToken() string {
 	_, _ = rand.Read(b)
 	return hex.EncodeToString(b)
 }
+
