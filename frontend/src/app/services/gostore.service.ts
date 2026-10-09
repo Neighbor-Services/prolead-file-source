@@ -331,6 +331,27 @@ export class GoStoreService {
     );
   }
 
+  presignUpload(bucket: string, path: string, durationMinutes = 60): Observable<{ uploadUrl: string; bucket: string; path: string; expiresAt: number; signature: string }> {
+    return this.http.post<{ uploadUrl: string; bucket: string; path: string; expiresAt: number; signature: string }>(
+      `${this.baseUrl}/api/v1/b/${bucket}/presign-upload`,
+      { path, durationMinutes },
+      { headers: this.getHeaders() }
+    );
+  }
+
+  extractZip(bucket: string, file: File, prefix = ''): Observable<{ success: boolean; extractedCount: number; files: StorageObject[] }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (prefix) {
+      formData.append('prefix', prefix);
+    }
+    return this.http.post<{ success: boolean; extractedCount: number; files: StorageObject[] }>(
+      `${this.baseUrl}/api/v1/b/${bucket}/extract-zip${prefix ? '?prefix=' + encodeURIComponent(prefix) : ''}`,
+      formData,
+      { headers: this.getHeaders() }
+    );
+  }
+
   listenToEvents(): Observable<StorageEvent> {
     return new Observable<StorageEvent>(observer => {
       const eventSource = new EventSource(`${this.baseUrl}/api/v1/events`);

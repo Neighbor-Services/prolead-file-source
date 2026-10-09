@@ -189,6 +189,9 @@ func NewRouter(
 		// Object Storage, Versioning, Resumable Uploads & Signed URLs
 		r.Route("/b/{bucket}", func(r chi.Router) {
 			r.Post("/sign-url", storageHandler.SignURL)
+			r.Post("/presign-upload", storageHandler.PresignUpload)
+			r.HandleFunc("/upload-direct", storageHandler.UploadDirect)
+			r.Post("/extract-zip", storageHandler.ExtractZip)
 			r.Post("/rotate-token", storageHandler.RotateToken)
 			r.Post("/download-zip", storageHandler.DownloadZip)
 			r.Get("/lifecycle", lifecycleHandler.GetRule)

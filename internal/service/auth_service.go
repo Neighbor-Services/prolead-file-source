@@ -35,6 +35,7 @@ type AuthService struct {
 	masterAPIKey string
 	sessions     map[string]*userSession
 	temp2FASess  map[string]*temp2FASession
+	revokedUsers map[string]time.Time
 	mu           sync.RWMutex
 }
 
@@ -44,6 +45,18 @@ func NewAuthService(userRepo *sqlite.UserRepository, masterAPIKey string) *AuthS
 		masterAPIKey: masterAPIKey,
 		sessions:     make(map[string]*userSession),
 		temp2FASess:  make(map[string]*temp2FASession),
+		revokedUsers: make(map[string]time.Time),
+	}
+}
+
+func (s *AuthService) RevokeUserSessions(userID string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.revokedUsers[userID] = time.Now().UTC()
+	for token, sess := range s.sessions {
+		if sess != nil && sess.User != nil && sess.User.ID == userID {
+			delete(s.sessions, token)
+		}
 	}
 }
 
@@ -310,6 +323,9 @@ func (s *AuthService) UpdateStaff(ctx context.Context, id, role, status string) 
 	}
 	if status != "" {
 		user.Status = strings.ToLower(strings.TrimSpace(status))
+		if user.Status == "suspended" {
+			s.RevokeUserSessions(id)
+		}
 	}
 
 	if err := s.userRepo.Update(ctx, user); err != nil {
@@ -323,6 +339,7 @@ func (s *AuthService) DeleteStaff(ctx context.Context, id string) error {
 	if err != nil || user == nil {
 		return errors.New("staff user not found")
 	}
+	s.RevokeUserSessions(id)
 	return s.userRepo.Delete(ctx, id)
 }
 
@@ -343,6 +360,7 @@ func (s *AuthService) ResetStaffPassword(ctx context.Context, id, newPassword st
 	}
 
 	user.PasswordHash = string(hash)
+	s.RevokeUserSessions(id)
 	return s.userRepo.Update(ctx, user)
 }
 
@@ -374,6 +392,15 @@ func (s *AuthService) ValidateToken(token string) *domain.User {
 
 	if exists && sess != nil {
 		if time.Now().Before(sess.ExpiresAt) {
+			s.mu.RLock()
+			revokedAt, isRevoked := s.revokedUsers[sess.User.ID]
+			s.mu.RUnlock()
+			if isRevoked && !sess.ExpiresAt.After(revokedAt.Add(24*time.Hour)) {
+				s.mu.Lock()
+				delete(s.sessions, token)
+				s.mu.Unlock()
+				return nil
+			}
 			return sess.User
 		}
 		s.mu.Lock()
@@ -404,6 +431,13 @@ func (s *AuthService) ValidateToken(token string) *domain.User {
 						username := payloadParts[1]
 						isSuperuser := payloadParts[2] == "true"
 						expiresUnix, _ := strconv.ParseInt(payloadParts[3], 10, 64)
+
+						s.mu.RLock()
+						_, isRevoked := s.revokedUsers[id]
+						s.mu.RUnlock()
+						if isRevoked {
+							return nil
+						}
 
 						if time.Now().Unix() < expiresUnix {
 							user := &domain.User{

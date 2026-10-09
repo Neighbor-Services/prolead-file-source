@@ -1,11 +1,14 @@
 package handlers
 
 import (
+	"archive/zip"
+	"bytes"
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"path/filepath"
@@ -734,6 +737,142 @@ func (h *StorageHandler) RotateToken(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(fileObj)
 }
 
+// PresignUpload generates a pre-signed, tamper-proof upload URL for direct client uploads
+func (h *StorageHandler) PresignUpload(w http.ResponseWriter, r *http.Request) {
+	bucket := chi.URLParam(r, "bucket")
+	var req struct {
+		Path            string `json:"path"`
+		DurationMinutes int    `json:"durationMinutes"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Path == "" {
+		writeJSONError(w, http.StatusBadRequest, "Invalid request: 'path' is required")
+		return
+	}
+
+	duration := 60 * time.Minute
+	if req.DurationMinutes > 0 && req.DurationMinutes <= 1440 {
+		duration = time.Duration(req.DurationMinutes) * time.Minute
+	}
+
+	uploadURL, expires, sig, err := h.storageService.GeneratePresignedUploadURL(bucket, req.Path, duration)
+	if err != nil {
+		writeJSONError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"uploadUrl": uploadURL,
+		"bucket":    bucket,
+		"path":      req.Path,
+		"expiresAt": expires,
+		"signature": sig,
+	})
+}
+
+// UploadDirect receives a direct file stream authorized by a pre-signed upload signature
+func (h *StorageHandler) UploadDirect(w http.ResponseWriter, r *http.Request) {
+	bucket := chi.URLParam(r, "bucket")
+	filePath := r.URL.Query().Get("path")
+	expires := r.URL.Query().Get("expires")
+	sig := r.URL.Query().Get("sig")
+
+	if filePath == "" || expires == "" || sig == "" {
+		writeJSONError(w, http.StatusBadRequest, "Missing required query parameters: path, expires, sig")
+		return
+	}
+
+	if !h.storageService.VerifyUploadSignature(bucket, filePath, expires, sig) {
+		writeJSONError(w, http.StatusForbidden, "Invalid or expired pre-signed upload signature")
+		return
+	}
+
+	contentType := r.Header.Get("Content-Type")
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+
+	// Read stream directly
+	fileObj, err := h.storageService.Upload(r.Context(), service.UploadInput{
+		Bucket:      bucket,
+		Path:        filePath,
+		ContentType: contentType,
+		Reader:      r.Body,
+	})
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	_ = json.NewEncoder(w).Encode(fileObj)
+}
+
+// ExtractZip handles uploaded zip archive and unpacks contents into bucket folder
+func (h *StorageHandler) ExtractZip(w http.ResponseWriter, r *http.Request) {
+	bucket := chi.URLParam(r, "bucket")
+	targetPrefix := r.URL.Query().Get("prefix")
+
+	mr, err := r.MultipartReader()
+	var zipBuf []byte
+	if err == nil {
+		for {
+			p, err := mr.NextPart()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				writeJSONError(w, http.StatusBadRequest, "Failed to read multipart stream")
+				return
+			}
+			if p.FormName() == "prefix" && targetPrefix == "" {
+				prefixBytes, _ := io.ReadAll(p)
+				targetPrefix = string(prefixBytes)
+				continue
+			}
+			if p.FormName() == "file" || strings.HasSuffix(strings.ToLower(p.FileName()), ".zip") {
+				zipBuf, err = io.ReadAll(p)
+				if err != nil {
+					writeJSONError(w, http.StatusBadRequest, "Failed to read zip payload")
+					return
+				}
+				break
+			}
+		}
+	} else {
+		zipBuf, err = io.ReadAll(r.Body)
+		if err != nil {
+			writeJSONError(w, http.StatusBadRequest, "Failed to read body")
+			return
+		}
+	}
+
+	if len(zipBuf) == 0 {
+		writeJSONError(w, http.StatusBadRequest, "No zip data received")
+		return
+	}
+
+	zipReader, err := zip.NewReader(bytes.NewReader(zipBuf), int64(len(zipBuf)))
+	if err != nil {
+		writeJSONError(w, http.StatusBadRequest, "Invalid zip archive: "+err.Error())
+		return
+	}
+
+	extracted, err := h.storageService.ExtractZipArchive(r.Context(), bucket, targetPrefix, zipReader)
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":        true,
+		"extractedCount": len(extracted),
+		"files":          extracted,
+	})
+}
+
 func writeJSONError(w http.ResponseWriter, statusCode int, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
@@ -744,3 +883,4 @@ func writeJSONError(w http.ResponseWriter, statusCode int, message string) {
 		},
 	})
 }
+

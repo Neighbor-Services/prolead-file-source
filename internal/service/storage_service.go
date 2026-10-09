@@ -1,6 +1,7 @@
 package service
 
 import (
+	"archive/zip"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -534,6 +535,83 @@ func (s *StorageService) DeleteFolder(ctx context.Context, bucket, prefix string
 	return deleted, nil
 }
 
+func (s *StorageService) GeneratePresignedUploadURL(bucket, path string, duration time.Duration) (string, int64, string, error) {
+	bucketObj, err := s.bucketRepo.GetByName(context.Background(), bucket)
+	if err != nil {
+		return "", 0, "", err
+	}
+	if bucketObj == nil {
+		return "", 0, "", ErrBucketNotFound
+	}
+
+	cleanPath := strings.TrimPrefix(path, "/")
+	if cleanPath == "" {
+		return "", 0, "", errors.New("invalid empty path")
+	}
+
+	uploadURL, exp, sig := s.signer.GeneratePresignedUploadURL(bucket, cleanPath, duration)
+	return uploadURL, exp, sig, nil
+}
+
+func (s *StorageService) VerifyUploadSignature(bucket, path, expires, sig string) bool {
+	if s.signer == nil {
+		return false
+	}
+	return s.signer.VerifyUpload(bucket, path, expires, sig)
+}
+
+func (s *StorageService) ExtractZipArchive(ctx context.Context, bucket, targetPrefix string, zipReader *zip.Reader) ([]*domain.FileObject, error) {
+	bucketObj, err := s.bucketRepo.GetByName(ctx, bucket)
+	if err != nil {
+		return nil, err
+	}
+	if bucketObj == nil {
+		return nil, ErrBucketNotFound
+	}
+
+	var extracted []*domain.FileObject
+	cleanPrefix := strings.Trim(targetPrefix, "/")
+	if cleanPrefix != "" {
+		cleanPrefix += "/"
+	}
+
+	for _, file := range zipReader.File {
+		// Prevent Zip Slip vulnerability
+		cleanName := filepath.Clean(file.Name)
+		if strings.HasPrefix(cleanName, "..") || strings.HasPrefix(cleanName, "/") || strings.Contains(cleanName, `\`) {
+			continue
+		}
+
+		if file.FileInfo().IsDir() {
+			continue
+		}
+
+		rc, err := file.Open()
+		if err != nil {
+			continue
+		}
+
+		filePath := cleanPrefix + cleanName
+		mimeType := mime.TypeByExtension(filepath.Ext(filePath))
+		if mimeType == "" {
+			mimeType = "application/octet-stream"
+		}
+
+		uploaded, err := s.Upload(ctx, UploadInput{
+			Bucket:      bucket,
+			Path:        filePath,
+			ContentType: mimeType,
+			Reader:      rc,
+		})
+		rc.Close()
+		if err == nil && uploaded != nil {
+			extracted = append(extracted, uploaded)
+		}
+	}
+
+	return extracted, nil
+}
+
 func isBlockedExecutable(filename, mimeType string) bool {
 	ext := strings.ToLower(filepath.Ext(filename))
 	blockedExts := map[string]bool{
@@ -547,4 +625,5 @@ func isBlockedExecutable(filename, mimeType string) bool {
 	}
 	return false
 }
+
 
