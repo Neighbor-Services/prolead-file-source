@@ -1,0 +1,336 @@
+<div class="staff-page animate-fade">
+  
+  <!-- Page Header -->
+  <div class="page-title-row">
+    <div class="header-left">
+      <div class="header-badge-row">
+        <span class="badge-tag">SECURITY & IAM</span>
+        <span class="badge-subtitle">Enterprise Access Governance</span>
+      </div>
+      <h1>Admin Staff & Access Control</h1>
+      <p class="subtitle">Manage multi-administrator accounts, role-based permissions (RBAC), and two-factor authentication.</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-primary btn-glow" (click)="openAddModal()">
+        <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        <span>Add Staff Member</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- KPI Stat Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon-wrap icon-primary">
+        <svg class="svg-icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+      </div>
+      <div class="stat-info">
+        <span class="stat-label">Total Staff</span>
+        <h3 class="stat-value font-mono">{{ staffList().length }}</h3>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon-wrap icon-indigo">
+        <svg class="svg-icon" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+      </div>
+      <div class="stat-info">
+        <span class="stat-label">Super Administrators</span>
+        <h3 class="stat-value font-mono">{{ staffList().filter(u => u.isSuperuser || u.role === 'superadmin').length }}</h3>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon-wrap icon-success">
+        <svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+      </div>
+      <div class="stat-info">
+        <span class="stat-label">2FA Protected</span>
+        <h3 class="stat-value font-mono text-emerald">{{ staffList().filter(u => u.twoFactorEnabled).length }}</h3>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon-wrap icon-info">
+        <svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+      </div>
+      <div class="stat-info">
+        <span class="stat-label">Active Accounts</span>
+        <h3 class="stat-value font-mono">{{ staffList().filter(u => u.status !== 'suspended').length }}</h3>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toolbar & Filters -->
+  <div class="toolbar-card">
+    <div class="search-box">
+      <svg class="search-icon svg-icon-xs" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      <input 
+        type="text" 
+        class="search-input" 
+        placeholder="Search staff by username, email, or role..." 
+        [ngModel]="searchQuery()" 
+        (ngModelChange)="searchQuery.set($event)" />
+    </div>
+
+    <div class="filter-pills">
+      <button class="pill-btn" [class.active]="roleFilter() === 'ALL'" (click)="roleFilter.set('ALL')">All Roles</button>
+      <button class="pill-btn" [class.active]="roleFilter() === 'superadmin'" (click)="roleFilter.set('superadmin')">Super Admin</button>
+      <button class="pill-btn" [class.active]="roleFilter() === 'admin'" (click)="roleFilter.set('admin')">Admin</button>
+      <button class="pill-btn" [class.active]="roleFilter() === 'operator'" (click)="roleFilter.set('operator')">Operator</button>
+      <button class="pill-btn" [class.active]="roleFilter() === 'viewer'" (click)="roleFilter.set('viewer')">Viewer</button>
+      <button class="pill-btn" (click)="loadStaff()" title="Refresh List">
+        <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Staff Table Card -->
+  <div class="card-table">
+    <table class="staff-table">
+      <thead>
+        <tr>
+          <th>Staff Member</th>
+          <th>Email Address</th>
+          <th>Role / Privileges</th>
+          <th>2FA Security</th>
+          <th>Status</th>
+          <th>Last Login</th>
+          <th style="text-align: right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (staff of filteredStaff(); track staff.id) {
+          <tr [class.row-suspended]="staff.status === 'suspended'">
+            <td>
+              <div class="staff-user-cell">
+                <div class="user-avatar-circle" [class.super-avatar]="staff.isSuperuser || staff.role === 'superadmin'">
+                  {{ staff.username.substring(0, 2).toUpperCase() }}
+                </div>
+                <div class="user-details">
+                  <span class="user-name">{{ staff.username }}</span>
+                  <span class="user-id font-mono text-dim">{{ staff.id.substring(0, 12) }}...</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="text-muted text-sm font-mono">{{ staff.email || 'No email registered' }}</span>
+            </td>
+            <td>
+              <span class="role-badge" [class]="'role-' + (staff.role || (staff.isSuperuser ? 'superadmin' : 'admin'))">
+                {{ staff.role === 'superadmin' || staff.isSuperuser ? 'Super Admin' : (staff.role | titlecase) }}
+              </span>
+            </td>
+            <td>
+              @if (staff.twoFactorEnabled) {
+                <span class="badge-2fa-active">
+                  <span class="dot-emerald"></span>
+                  <span>2FA Enabled</span>
+                </span>
+              } @else {
+                <span class="badge-2fa-disabled">
+                  <span>Disabled</span>
+                </span>
+              }
+            </td>
+            <td>
+              <span class="status-pill" [class.active]="staff.status !== 'suspended'" [class.suspended]="staff.status === 'suspended'">
+                <span class="status-dot"></span>
+                {{ staff.status === 'suspended' ? 'Suspended' : 'Active' }}
+              </span>
+            </td>
+            <td>
+              <span class="text-muted text-xs font-mono">
+                {{ staff.lastLoginAt ? (staff.lastLoginAt | date:'medium') : 'Never logged in' }}
+              </span>
+            </td>
+            <td style="text-align: right;">
+              <div class="row-actions">
+                <button class="icon-btn-xs" (click)="openEditModal(staff)" title="Edit Role & Permissions">
+                  <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                </button>
+                <button class="icon-btn-xs" (click)="openResetModal(staff)" title="Reset Password">
+                  <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                </button>
+                <button class="icon-btn-xs danger" (click)="deleteStaff(staff)" title="Revoke & Delete Staff">
+                  <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        }
+
+        @if (filteredStaff().length === 0 && !isLoading()) {
+          <tr>
+            <td colspan="7" class="empty-state-cell">
+              <div class="empty-box">
+                <svg class="svg-icon svg-icon-xl" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+                <h4>No staff members found</h4>
+                <p>Add admin staff members or team operators to collaborate with role-based access.</p>
+                <button class="btn btn-primary btn-sm" (click)="openAddModal()">Add Staff Member</button>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- MODAL: Add Staff Member -->
+  @if (showAddModal()) {
+    <div class="modal-backdrop" (click)="showAddModal.set(false)">
+      <div class="modal-card modal-md" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <div class="icon-circle-indigo">
+              <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+            </div>
+            <div>
+              <h3>Add Admin Staff Member</h3>
+              <p class="modal-subtitle">Provision access credentials and role permissions for a new team member.</p>
+            </div>
+          </div>
+          <button class="close-btn" (click)="showAddModal.set(false)">✕</button>
+        </div>
+
+        <form (submit)="submitAddStaff(); $event.preventDefault()">
+          <div class="form-group">
+            <label>Username *</label>
+            <input 
+              type="text" 
+              class="form-control" 
+              placeholder="e.g. dev-admin, sarah_ops" 
+              [ngModel]="newUsername()" 
+              (ngModelChange)="newUsername.set($event)" 
+              name="newUsername" 
+              required />
+          </div>
+
+          <div class="form-group">
+            <label>Email Address</label>
+            <input 
+              type="email" 
+              class="form-control" 
+              placeholder="e.g. staff@proleadsolutions.co" 
+              [ngModel]="newEmail()" 
+              (ngModelChange)="newEmail.set($event)" 
+              name="newEmail" />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label>Role & Access Level *</label>
+              <select class="form-control" [ngModel]="newRole()" (ngModelChange)="newRole.set($event)" name="newRole">
+                <option value="superadmin">Super Admin (Full Root Permissions)</option>
+                <option value="admin">Admin (Storage, Keys, Webhooks, Ops)</option>
+                <option value="operator">Operator (Storage Upload/Manage Only)</option>
+                <option value="viewer">Viewer (Read-Only Explorer)</option>
+              </select>
+            </div>
+            <div class="form-group flex-1">
+              <label>Initial Password *</label>
+              <input 
+                type="password" 
+                class="form-control" 
+                placeholder="Min 6 characters" 
+                [ngModel]="newPassword()" 
+                (ngModelChange)="newPassword.set($event)" 
+                name="newPassword" 
+                required />
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" (click)="showAddModal.set(false)">Cancel</button>
+            <button type="submit" class="btn btn-primary">Create Staff Member</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: Edit Staff Role & Status -->
+  @if (showEditModal() && editingStaff()) {
+    <div class="modal-backdrop" (click)="showEditModal.set(false)">
+      <div class="modal-card modal-md" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <div class="icon-circle-indigo">
+              <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+            </div>
+            <div>
+              <h3>Edit Permissions for {{ editingStaff()?.username }}</h3>
+              <p class="modal-subtitle">Update assigned role privileges or suspend dashboard access.</p>
+            </div>
+          </div>
+          <button class="close-btn" (click)="showEditModal.set(false)">✕</button>
+        </div>
+
+        <form (submit)="submitEditStaff(); $event.preventDefault()">
+          <div class="form-group">
+            <label>Assigned Role</label>
+            <select class="form-control" [ngModel]="editRole()" (ngModelChange)="editRole.set($event)" name="editRole">
+              <option value="superadmin">Super Admin (Full Root Permissions)</option>
+              <option value="admin">Admin (Storage, Keys, Webhooks, Ops)</option>
+              <option value="operator">Operator (Storage Upload/Manage Only)</option>
+              <option value="viewer">Viewer (Read-Only Explorer)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Account Status</label>
+            <select class="form-control" [ngModel]="editStatus()" (ngModelChange)="editStatus.set($event)" name="editStatus">
+              <option value="active">Active (Access Allowed)</option>
+              <option value="suspended">Suspended (Access Denied)</option>
+            </select>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" (click)="showEditModal.set(false)">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: Reset Staff Password -->
+  @if (showResetModal() && targetResetStaff()) {
+    <div class="modal-backdrop" (click)="showResetModal.set(false)">
+      <div class="modal-card modal-md" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <div class="icon-circle-indigo">
+              <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            </div>
+            <div>
+              <h3>Reset Password for {{ targetResetStaff()?.username }}</h3>
+              <p class="modal-subtitle">Assign a new master password for this administrator.</p>
+            </div>
+          </div>
+          <button class="close-btn" (click)="showResetModal.set(false)">✕</button>
+        </div>
+
+        <form (submit)="submitResetPassword(); $event.preventDefault()">
+          <div class="form-group">
+            <label>New Password *</label>
+            <input 
+              type="password" 
+              class="form-control" 
+              placeholder="Enter new password (min 6 chars)..." 
+              [ngModel]="resetPasswordInput()" 
+              (ngModelChange)="resetPasswordInput.set($event)" 
+              name="resetPasswordInput" 
+              required />
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" (click)="showResetModal.set(false)">Cancel</button>
+            <button type="submit" class="btn btn-primary">Update Password</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+</div>

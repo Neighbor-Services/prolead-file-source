@@ -17,6 +17,9 @@ import {
   APIKey,
   Project,
   UserProfile,
+  StaffUser,
+  TwoFactorSetupResult,
+  LoginResult,
   ShareLink,
   LifecycleRule,
   TestWebhookResult,
@@ -75,17 +78,97 @@ export class GoStoreService {
     }
   }
 
-  login(username: string, password: string): Observable<{ token: string; user: UserProfile; isAdmin: boolean }> {
-    return this.http.post<{ token: string; user: UserProfile; isAdmin: boolean }>(
+  login(username: string, password: string, totpCode?: string): Observable<LoginResult> {
+    return this.http.post<LoginResult>(
       `${this.baseUrl}/api/v1/auth/login`,
-      { username, password }
+      { username, password, totpCode }
     ).pipe(
       map(res => {
-        this.setConfig(this.baseUrl, res.token);
-        this.currentUser.set(res.user);
-        localStorage.setItem('gostore_user', JSON.stringify(res.user));
+        if (res.token && res.user) {
+          this.setConfig(this.baseUrl, res.token);
+          this.currentUser.set(res.user);
+          localStorage.setItem('gostore_user', JSON.stringify(res.user));
+        }
         return res;
       })
+    );
+  }
+
+  verify2FA(tempToken: string, totpCode: string): Observable<LoginResult> {
+    return this.http.post<LoginResult>(
+      `${this.baseUrl}/api/v1/auth/verify-2fa`,
+      { tempToken, totpCode }
+    ).pipe(
+      map(res => {
+        if (res.token && res.user) {
+          this.setConfig(this.baseUrl, res.token);
+          this.currentUser.set(res.user);
+          localStorage.setItem('gostore_user', JSON.stringify(res.user));
+        }
+        return res;
+      })
+    );
+  }
+
+  setup2FA(): Observable<TwoFactorSetupResult> {
+    return this.http.post<TwoFactorSetupResult>(
+      `${this.baseUrl}/api/v1/auth/2fa/setup`,
+      {},
+      { headers: this.getHeaders() }
+    );
+  }
+
+  enable2FA(code: string, secret: string): Observable<{ success: boolean; message: string }> {
+    return this.http.post<{ success: boolean; message: string }>(
+      `${this.baseUrl}/api/v1/auth/2fa/enable`,
+      { code, secret },
+      { headers: this.getHeaders() }
+    );
+  }
+
+  disable2FA(code: string): Observable<{ success: boolean; message: string }> {
+    return this.http.post<{ success: boolean; message: string }>(
+      `${this.baseUrl}/api/v1/auth/2fa/disable`,
+      { code },
+      { headers: this.getHeaders() }
+    );
+  }
+
+  listStaff(): Observable<StaffUser[]> {
+    return this.http.get<StaffUser[]>(
+      `${this.baseUrl}/api/v1/staff`,
+      { headers: this.getHeaders() }
+    );
+  }
+
+  createStaff(req: { username: string; email?: string; password: string; role: string }): Observable<StaffUser> {
+    return this.http.post<StaffUser>(
+      `${this.baseUrl}/api/v1/staff`,
+      req,
+      { headers: this.getHeaders() }
+    );
+  }
+
+  updateStaff(id: string, req: { role?: string; status?: string }): Observable<StaffUser> {
+    return this.http.put<StaffUser>(
+      `${this.baseUrl}/api/v1/staff/${id}`,
+      req,
+      { headers: this.getHeaders() }
+    );
+  }
+
+  deleteStaff(id: string): Observable<{ success: boolean; message: string }> {
+    return this.http.delete<{ success: boolean; message: string }>(
+      `${this.baseUrl}/api/v1/staff/${id}`,
+      { headers: this.getHeaders() }
+    );
+  }
+
+  resetStaffPassword(id: string, password: string): Observable<{ success: boolean; message: string }> {
+    return this.http.post<{ success: boolean; message: string }>(
+      `${this.baseUrl}/api/v1/staff/${id}/reset-password`,
+      { password },
+      { headers: this.getHeaders() }
     );
   }
 

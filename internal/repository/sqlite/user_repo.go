@@ -43,6 +43,28 @@ func (r *UserRepository) Count(ctx context.Context) (int64, error) {
 	return count, err
 }
 
+func (r *UserRepository) GetByID(ctx context.Context, id string) (*domain.User, error) {
+	var u domain.User
+	err := r.db.WithContext(ctx).Where("id = ?", id).First(&u).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &u, nil
+}
+
+func (r *UserRepository) List(ctx context.Context) ([]domain.User, error) {
+	var users []domain.User
+	err := r.db.WithContext(ctx).Order("created_at DESC").Find(&users).Error
+	return users, err
+}
+
+func (r *UserRepository) Delete(ctx context.Context, id string) error {
+	return r.db.WithContext(ctx).Where("id = ?", id).Delete(&domain.User{}).Error
+}
+
 func (r *UserRepository) Update(ctx context.Context, u *domain.User) error {
 	u.UpdatedAt = time.Now().UTC()
 	return r.db.WithContext(ctx).Save(u).Error

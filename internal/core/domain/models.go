@@ -78,15 +78,20 @@ type Project struct {
 	UpdatedAt   time.Time `gorm:"autoUpdateTime" json:"updatedAt"`
 }
 
-// User represents an administrator / superuser account
+// User represents an administrator / superuser / staff account
 type User struct {
-	ID           string    `gorm:"primaryKey;size:64" json:"id"`
-	Username     string    `gorm:"uniqueIndex;not null;size:64" json:"username"`
-	Email        string    `gorm:"uniqueIndex;size:128" json:"email,omitempty"`
-	PasswordHash string    `gorm:"not null;size:255" json:"-"`
-	IsSuperuser  bool      `gorm:"default:true" json:"isSuperuser"`
-	CreatedAt    time.Time `gorm:"autoCreateTime" json:"createdAt"`
-	UpdatedAt    time.Time `gorm:"autoUpdateTime" json:"updatedAt"`
+	ID               string     `gorm:"primaryKey;size:64" json:"id"`
+	Username         string     `gorm:"uniqueIndex;not null;size:64" json:"username"`
+	Email            string     `gorm:"uniqueIndex;size:128" json:"email,omitempty"`
+	PasswordHash     string     `gorm:"not null;size:255" json:"-"`
+	Role             string     `gorm:"default:'admin';size:32" json:"role"` // superadmin, admin, operator, viewer
+	IsSuperuser      bool       `gorm:"default:true" json:"isSuperuser"`
+	TwoFactorEnabled bool       `gorm:"default:false" json:"twoFactorEnabled"`
+	TwoFactorSecret  string     `gorm:"size:128" json:"-"`
+	Status           string     `gorm:"default:'active';size:32" json:"status"` // active, suspended
+	LastLoginAt      *time.Time `json:"lastLoginAt,omitempty"`
+	CreatedAt        time.Time  `gorm:"autoCreateTime" json:"createdAt"`
+	UpdatedAt        time.Time  `gorm:"autoUpdateTime" json:"updatedAt"`
 }
 
 // Bucket represents a logical storage container with Quotas and SSE encryption

@@ -94,7 +94,10 @@ export interface UserProfile {
   id: string;
   username: string;
   email?: string;
+  role?: string;
   isSuperuser: boolean;
+  twoFactorEnabled?: boolean;
+  status?: string;
 }
 
 export interface StorageBucket {
@@ -251,6 +254,33 @@ export interface WorkerJobRecord {
   createdAt: string;
   startedAt?: string;
   completedAt?: string;
+}
+
+export interface StaffUser {
+  id: string;
+  username: string;
+  email?: string;
+  role: 'superadmin' | 'admin' | 'operator' | 'viewer';
+  isSuperuser: boolean;
+  twoFactorEnabled: boolean;
+  status: 'active' | 'suspended';
+  lastLoginAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TwoFactorSetupResult {
+  secret: string;
+  otpAuthUri: string;
+  recoveryCodes: string[];
+}
+
+export interface LoginResult {
+  token?: string;
+  user?: StaffUser;
+  isAdmin: boolean;
+  require2fa?: boolean;
+  tempToken?: string;
 }
 
 export interface WorkerPoolStats {

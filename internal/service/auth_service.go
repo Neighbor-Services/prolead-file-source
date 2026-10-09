@@ -25,10 +25,16 @@ type userSession struct {
 	ExpiresAt time.Time
 }
 
+type temp2FASession struct {
+	User      *domain.User
+	ExpiresAt time.Time
+}
+
 type AuthService struct {
 	userRepo     *sqlite.UserRepository
 	masterAPIKey string
 	sessions     map[string]*userSession
+	temp2FASess  map[string]*temp2FASession
 	mu           sync.RWMutex
 }
 
@@ -37,16 +43,25 @@ func NewAuthService(userRepo *sqlite.UserRepository, masterAPIKey string) *AuthS
 		userRepo:     userRepo,
 		masterAPIKey: masterAPIKey,
 		sessions:     make(map[string]*userSession),
+		temp2FASess:  make(map[string]*temp2FASession),
 	}
 }
 
 type LoginResult struct {
-	Token   string       `json:"token"`
-	User    *domain.User `json:"user"`
-	IsAdmin bool         `json:"isAdmin"`
+	Token       string       `json:"token,omitempty"`
+	User        *domain.User `json:"user,omitempty"`
+	IsAdmin     bool         `json:"isAdmin"`
+	Require2FA  bool         `json:"require2fa,omitempty"`
+	TempToken   string       `json:"tempToken,omitempty"`
 }
 
-func (s *AuthService) Login(ctx context.Context, username, password string) (*LoginResult, error) {
+type TwoFactorSetupResult struct {
+	Secret        string   `json:"secret"`
+	OTPAuthURI    string   `json:"otpAuthUri"`
+	RecoveryCodes []string `json:"recoveryCodes"`
+}
+
+func (s *AuthService) Login(ctx context.Context, username, password, totpCode string) (*LoginResult, error) {
 	username = strings.TrimSpace(username)
 	password = strings.TrimSpace(password)
 
@@ -54,15 +69,54 @@ func (s *AuthService) Login(ctx context.Context, username, password string) (*Lo
 		return nil, errors.New("username and password are required")
 	}
 
-	// Strictly authenticate against database users (created via createsuperuser CLI)
 	user, err := s.userRepo.GetByUsername(ctx, username)
 	if err != nil || user == nil {
 		return nil, errors.New("invalid username or password")
 	}
 
+	if user.Status == "suspended" {
+		return nil, errors.New("account is suspended. Please contact the administrator.")
+	}
+
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
 		return nil, errors.New("invalid username or password")
 	}
+
+	// If 2FA is enabled on this account
+	if user.TwoFactorEnabled && user.TwoFactorSecret != "" {
+		if totpCode == "" {
+			// Generate temporary challenge token valid for 5 minutes
+			tempToken := "2fa_" + generateRandomToken()
+			s.mu.Lock()
+			s.temp2FASess[tempToken] = &temp2FASession{
+				User:      user,
+				ExpiresAt: time.Now().Add(5 * time.Minute),
+			}
+			s.mu.Unlock()
+
+			return &LoginResult{
+				Require2FA: true,
+				TempToken:  tempToken,
+				User: &domain.User{
+					ID:               user.ID,
+					Username:         user.Username,
+					Email:            user.Email,
+					Role:             user.Role,
+					TwoFactorEnabled: true,
+				},
+			}, nil
+		}
+
+		// Validate 2FA TOTP code
+		if !ValidateTOTPCode(user.TwoFactorSecret, totpCode) {
+			return nil, errors.New("invalid two-factor authentication code")
+		}
+	}
+
+	// Update last login timestamp
+	now := time.Now().UTC()
+	user.LastLoginAt = &now
+	_ = s.userRepo.Update(ctx, user)
 
 	expiresAt := time.Now().Add(7 * 24 * time.Hour)
 	token := s.generateSignedToken(user, expiresAt)
@@ -77,21 +131,144 @@ func (s *AuthService) Login(ctx context.Context, username, password string) (*Lo
 	return &LoginResult{
 		Token:   token,
 		User:    user,
-		IsAdmin: user.IsSuperuser,
+		IsAdmin: user.IsSuperuser || user.Role == "superadmin" || user.Role == "admin",
 	}, nil
 }
 
-func (s *AuthService) Logout(token string) {
+func (s *AuthService) Verify2FALogin(ctx context.Context, tempToken string, totpCode string) (*LoginResult, error) {
+	tempToken = strings.TrimSpace(tempToken)
+	totpCode = strings.TrimSpace(totpCode)
+
+	if tempToken == "" || totpCode == "" {
+		return nil, errors.New("two-factor authentication code is required")
+	}
+
 	s.mu.Lock()
-	defer s.mu.Unlock()
-	delete(s.sessions, token)
+	sess, exists := s.temp2FASess[tempToken]
+	if exists {
+		delete(s.temp2FASess, tempToken)
+	}
+	s.mu.Unlock()
+
+	if !exists || sess == nil || time.Now().After(sess.ExpiresAt) {
+		return nil, errors.New("2FA verification session expired. Please log in again.")
+	}
+
+	user, err := s.userRepo.GetByID(ctx, sess.User.ID)
+	if err != nil || user == nil {
+		return nil, errors.New("user account not found")
+	}
+
+	if !ValidateTOTPCode(user.TwoFactorSecret, totpCode) {
+		return nil, errors.New("invalid two-factor authentication code")
+	}
+
+	now := time.Now().UTC()
+	user.LastLoginAt = &now
+	_ = s.userRepo.Update(ctx, user)
+
+	expiresAt := time.Now().Add(7 * 24 * time.Hour)
+	token := s.generateSignedToken(user, expiresAt)
+
+	s.mu.Lock()
+	s.sessions[token] = &userSession{
+		User:      user,
+		ExpiresAt: expiresAt,
+	}
+	s.mu.Unlock()
+
+	return &LoginResult{
+		Token:   token,
+		User:    user,
+		IsAdmin: user.IsSuperuser || user.Role == "superadmin" || user.Role == "admin",
+	}, nil
 }
 
-func (s *AuthService) CreateSuperuser(ctx context.Context, username, email, password string) (*domain.User, error) {
+func (s *AuthService) Setup2FA(ctx context.Context, userID string) (*TwoFactorSetupResult, error) {
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil || user == nil {
+		return nil, errors.New("user not found")
+	}
+
+	secret, err := GenerateTOTPSecret()
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate 2FA secret: %w", err)
+	}
+
+	otpAuthURI := GenerateOTPAuthURI(user.Username, "Prolead File", secret)
+	recoveryCodes := []string{
+		generateRandomCode(),
+		generateRandomCode(),
+		generateRandomCode(),
+		generateRandomCode(),
+	}
+
+	return &TwoFactorSetupResult{
+		Secret:        secret,
+		OTPAuthURI:    otpAuthURI,
+		RecoveryCodes: recoveryCodes,
+	}, nil
+}
+
+func (s *AuthService) VerifyAndEnable2FA(ctx context.Context, userID, code, secret string) error {
+	code = strings.TrimSpace(code)
+	secret = strings.TrimSpace(secret)
+	if code == "" || secret == "" {
+		return errors.New("code and secret are required")
+	}
+
+	if !ValidateTOTPCode(secret, code) {
+		return errors.New("verification failed: invalid 6-digit TOTP code")
+	}
+
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil || user == nil {
+		return errors.New("user not found")
+	}
+
+	user.TwoFactorEnabled = true
+	user.TwoFactorSecret = secret
+	return s.userRepo.Update(ctx, user)
+}
+
+func (s *AuthService) Disable2FA(ctx context.Context, userID, code string) error {
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil || user == nil {
+		return errors.New("user not found")
+	}
+
+	if user.TwoFactorEnabled && user.TwoFactorSecret != "" {
+		if !ValidateTOTPCode(user.TwoFactorSecret, code) {
+			return errors.New("invalid verification code to disable 2FA")
+		}
+	}
+
+	user.TwoFactorEnabled = false
+	user.TwoFactorSecret = ""
+	return s.userRepo.Update(ctx, user)
+}
+
+// Admin Staff Management
+func (s *AuthService) ListStaff(ctx context.Context) ([]domain.User, error) {
+	return s.userRepo.List(ctx)
+}
+
+func (s *AuthService) CreateStaff(ctx context.Context, username, email, password, role string) (*domain.User, error) {
 	username = strings.TrimSpace(username)
+	email = strings.TrimSpace(email)
 	password = strings.TrimSpace(password)
+	role = strings.ToLower(strings.TrimSpace(role))
+
 	if username == "" || password == "" {
-		return nil, errors.New("username and password cannot be empty")
+		return nil, errors.New("username and password are required")
+	}
+	if role == "" {
+		role = "admin"
+	}
+
+	existing, _ := s.userRepo.GetByUsername(ctx, username)
+	if existing != nil {
+		return nil, errors.New("user with this username or email already exists")
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -99,14 +276,19 @@ func (s *AuthService) CreateSuperuser(ctx context.Context, username, email, pass
 		return nil, err
 	}
 
+	isSuperuser := role == "superadmin"
+
 	user := &domain.User{
-		ID:           uuid.New().String(),
-		Username:     username,
-		Email:        email,
-		PasswordHash: string(hash),
-		IsSuperuser:  true,
-		CreatedAt:    time.Now().UTC(),
-		UpdatedAt:    time.Now().UTC(),
+		ID:               uuid.New().String(),
+		Username:         username,
+		Email:            email,
+		PasswordHash:     string(hash),
+		Role:             role,
+		IsSuperuser:      isSuperuser,
+		TwoFactorEnabled: false,
+		Status:           "active",
+		CreatedAt:        time.Now().UTC(),
+		UpdatedAt:        time.Now().UTC(),
 	}
 
 	if err := s.userRepo.Create(ctx, user); err != nil {
@@ -116,12 +298,72 @@ func (s *AuthService) CreateSuperuser(ctx context.Context, username, email, pass
 	return user, nil
 }
 
+func (s *AuthService) UpdateStaff(ctx context.Context, id, role, status string) (*domain.User, error) {
+	user, err := s.userRepo.GetByID(ctx, id)
+	if err != nil || user == nil {
+		return nil, errors.New("staff user not found")
+	}
+
+	if role != "" {
+		user.Role = strings.ToLower(strings.TrimSpace(role))
+		user.IsSuperuser = user.Role == "superadmin"
+	}
+	if status != "" {
+		user.Status = strings.ToLower(strings.TrimSpace(status))
+	}
+
+	if err := s.userRepo.Update(ctx, user); err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
+func (s *AuthService) DeleteStaff(ctx context.Context, id string) error {
+	user, err := s.userRepo.GetByID(ctx, id)
+	if err != nil || user == nil {
+		return errors.New("staff user not found")
+	}
+	return s.userRepo.Delete(ctx, id)
+}
+
+func (s *AuthService) ResetStaffPassword(ctx context.Context, id, newPassword string) error {
+	newPassword = strings.TrimSpace(newPassword)
+	if len(newPassword) < 6 {
+		return errors.New("password must be at least 6 characters long")
+	}
+
+	user, err := s.userRepo.GetByID(ctx, id)
+	if err != nil || user == nil {
+		return errors.New("staff user not found")
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	user.PasswordHash = string(hash)
+	return s.userRepo.Update(ctx, user)
+}
+
+func (s *AuthService) Logout(token string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delete(s.sessions, token)
+}
+
+func (s *AuthService) CreateSuperuser(ctx context.Context, username, email, password string) (*domain.User, error) {
+	return s.CreateStaff(ctx, username, email, password, "superadmin")
+}
+
 func (s *AuthService) ValidateToken(token string) *domain.User {
 	if token == s.masterAPIKey && s.masterAPIKey != "" {
 		return &domain.User{
 			ID:          "usr-master",
 			Username:    "master-admin",
+			Role:        "superadmin",
 			IsSuperuser: true,
+			Status:      "active",
 		}
 	}
 
@@ -168,6 +410,8 @@ func (s *AuthService) ValidateToken(token string) *domain.User {
 								ID:          id,
 								Username:    username,
 								IsSuperuser: isSuperuser,
+								Role:        "admin",
+								Status:      "active",
 							}
 							s.mu.Lock()
 							s.sessions[token] = &userSession{
@@ -205,3 +449,8 @@ func generateRandomToken() string {
 	return hex.EncodeToString(b)
 }
 
+func generateRandomCode() string {
+	b := make([]byte, 4)
+	_, _ = rand.Read(b)
+	return fmt.Sprintf("%04X-%04X", b[:2], b[2:])
+}

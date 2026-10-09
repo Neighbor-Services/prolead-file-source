@@ -603,6 +603,32 @@
   color: #10b981;
 }
 
+.badge-2fa {
+  background: rgba(16, 185, 129, 0.15) !important;
+  color: #10b981 !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+.btn-back-login {
+  background: transparent;
+  border: none;
+  color: var(--text-dim, #94a3b8);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-top: 12px;
+  transition: all 0.2s ease;
+  width: 100%;
+  text-align: center;
+}
+
+.btn-back-login:hover {
+  color: var(--text-main, #ffffff);
+  background: rgba(255, 255, 255, 0.05);
+}
+
 /* ------------------------------------------------------------------------------
    RESPONSIVE DESIGN (TABLETS & MOBILE)
    ------------------------------------------------------------------------------ */

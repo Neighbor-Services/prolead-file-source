@@ -107,14 +107,29 @@ func NewRouter(
 		r.Get("/stats", bucketHandler.GetStats)
 		r.Get("/events", storageHandler.EventsSSE)
 
-		// Auth & Superuser Endpoints
+		// Auth, 2FA & Superuser Endpoints
 		r.Route("/auth", func(r chi.Router) {
 			r.Post("/login", authHandler.Login)
+			r.Post("/verify-2fa", authHandler.Verify2FA)
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RequireAuth(keyService, authService))
 				r.Post("/logout", authHandler.Logout)
 				r.Get("/me", authHandler.Me)
+				r.Post("/2fa/setup", authHandler.Setup2FA)
+				r.Post("/2fa/enable", authHandler.Enable2FA)
+				r.Post("/2fa/disable", authHandler.Disable2FA)
 			})
+		})
+
+		// Admin Staff & Access Control
+		r.Route("/staff", func(r chi.Router) {
+			r.Use(middleware.RequireAuth(keyService, authService))
+			r.Use(middleware.RequireAdmin)
+			r.Get("/", authHandler.ListStaff)
+			r.Post("/", authHandler.CreateStaff)
+			r.Put("/{id}", authHandler.UpdateStaff)
+			r.Delete("/{id}", authHandler.DeleteStaff)
+			r.Post("/{id}/reset-password", authHandler.ResetStaffPassword)
 		})
 
 		// Multi-Tenant Projects

@@ -6,6 +6,7 @@ import { StorageComponent } from './pages/storage/storage.component';
 import { KeysComponent } from './pages/keys/keys.component';
 import { WebhooksComponent } from './pages/webhooks/webhooks.component';
 import { OperationsComponent } from './pages/operations/operations.component';
+import { StaffComponent } from './pages/staff/staff.component';
 import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
@@ -21,6 +22,7 @@ export const routes: Routes = [
       { path: 'projects/:projectId/keys', component: KeysComponent },
       { path: 'projects/:projectId/webhooks', component: WebhooksComponent },
       { path: 'operations', component: OperationsComponent },
+      { path: 'staff', component: StaffComponent },
     ]
   },
   { path: '**', redirectTo: 'projects' }

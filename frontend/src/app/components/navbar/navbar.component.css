@@ -279,6 +279,50 @@
   color: var(--text-main);
 }
 
+.user-dropdown-link-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: var(--transition);
+}
+
+.user-dropdown-link-btn:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-main);
+}
+
+.two-fa-menu-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.badge-2fa-status {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: rgba(148, 163, 184, 0.15);
+  color: var(--text-dim);
+}
+
+.badge-2fa-status.enabled {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--success);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
 .user-dropdown-logout {
   display: flex;
   align-items: center;
@@ -299,6 +343,287 @@
 .user-dropdown-logout:hover {
   background: rgba(239, 68, 68, 0.1);
 }
+
+/* Modal Styles */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.modal-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.modal-title-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.modal-icon-shield {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: rgba(99, 102, 241, 0.12);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.modal-subtitle {
+  margin: 4px 0 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.modal-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close-btn:hover {
+  background: var(--bg-badge);
+  color: var(--text-main);
+}
+
+.modal-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.alert-banner {
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.alert-danger {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: var(--danger);
+}
+
+.alert-success {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: var(--success);
+}
+
+/* Steps */
+.setup-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.setup-step {
+  display: flex;
+  gap: 14px;
+}
+
+.step-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.step-content {
+  flex: 1;
+}
+
+.step-content h4 {
+  margin: 0 0 4px 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.step-content p {
+  margin: 0 0 10px 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.qr-container {
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+  background: #ffffff;
+  border-radius: var(--radius-md);
+  width: fit-content;
+  box-shadow: var(--shadow-sm);
+}
+
+.qr-image {
+  width: 170px;
+  height: 170px;
+  display: block;
+}
+
+.secret-key-display {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-badge);
+  border: 1px solid var(--border-color);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+}
+
+.secret-key-display code {
+  font-family: monospace;
+  font-size: 0.85rem;
+  color: var(--primary);
+  font-weight: 700;
+  letter-spacing: 1px;
+  flex: 1;
+  word-break: break-all;
+}
+
+.btn-copy {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-copy:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--primary);
+}
+
+.recovery-codes-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  background: var(--bg-badge);
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+}
+
+.rec-code {
+  font-family: monospace;
+  font-size: 0.8rem;
+  color: var(--text-main);
+  padding: 2px 6px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-xs);
+  text-align: center;
+}
+
+.verification-input-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.code-input {
+  font-size: 1.1rem;
+  letter-spacing: 4px;
+  font-weight: 700;
+  max-width: 160px;
+}
+
+/* Disable 2FA flow */
+.disable-2fa-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.status-box-active {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  padding: 14px;
+  border-radius: var(--radius-md);
+}
+
+.shield-badge.active {
+  color: var(--success);
+  font-weight: 700;
+  font-size: 0.85rem;
+  display: inline-block;
+  margin-bottom: 6px;
+}
+
+.status-box-active p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+}
+
 
 @media (max-width: 992px) {
   .navbar {

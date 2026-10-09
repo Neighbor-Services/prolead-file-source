@@ -80,8 +80,8 @@
     </a>
   </nav>
 
-  <!-- Navigation Section 2: Integrations -->
-  <div class="nav-section-title">Developer Integrations</div>
+  <!-- Navigation Section 2: Integrations & Security -->
+  <div class="nav-section-title">Developer Integrations & IAM</div>
   <nav class="nav-menu">
     <a 
       [routerLink]="['/projects', currentProject()?.id || 'p-default', 'keys']" 
@@ -103,6 +103,17 @@
         <svg class="svg-icon" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
       </span>
       <span>Webhook Broadcasts</span>
+    </a>
+
+    <a 
+      routerLink="/staff" 
+      routerLinkActive="active" 
+      (click)="closeSidebar()"
+      class="nav-link">
+      <span class="icon">
+        <svg class="svg-icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+      </span>
+      <span>Staff & Access Control</span>
     </a>
   </nav>
 

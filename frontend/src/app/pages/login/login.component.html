@@ -58,8 +58,8 @@
             </svg>
           </div>
           <div class="feature-content">
-            <h4>AES-256-CTR & HMAC</h4>
-            <p>At-rest cryptographic encryption with tamper-proof signatures.</p>
+            <h4>AES-256-CTR & 2FA</h4>
+            <p>At-rest encryption & TOTP Two-Factor Authenticator security.</p>
           </div>
         </div>
 
@@ -88,118 +88,191 @@
       </div>
     </div>
 
-    <!-- RIGHT COLUMN: Secure Login Form -->
+    <!-- RIGHT COLUMN: Secure Login Form / 2FA Challenge -->
     <div class="form-side">
-      <div class="form-header">
-        <div class="shield-badge">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-          </svg>
-        </div>
-        <h3>Administrator Login</h3>
-        <p>Authenticate with your administrative credentials to manage storage partitions and API keys.</p>
-      </div>
-
-      @if (errorMessage()) {
-        <div class="error-alert">
-          <div class="error-icon">
+      @if (!require2FA()) {
+        <div class="form-header">
+          <div class="shield-badge">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="8" x2="12" y2="12"></line>
-              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
             </svg>
           </div>
-          <div class="error-text">{{ errorMessage() }}</div>
+          <h3>Administrator Login</h3>
+          <p>Authenticate with your administrative credentials to manage storage partitions and API keys.</p>
         </div>
+
+        @if (errorMessage()) {
+          <div class="error-alert">
+            <div class="error-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+            </div>
+            <div class="error-text">{{ errorMessage() }}</div>
+          </div>
+        }
+
+        <form (submit)="onLogin(); $event.preventDefault()" class="auth-form">
+          
+          <!-- Username / Email Field -->
+          <div class="form-field-group">
+            <label for="usernameInput">Username or Email</label>
+            <div class="input-container">
+              <span class="field-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+              </span>
+              <input
+                id="usernameInput"
+                type="text"
+                class="custom-input"
+                placeholder="admin or admin@proleadsolutions.co"
+                [value]="username()"
+                (input)="username.set($any($event.target).value)"
+                autocomplete="username"
+                required
+              />
+            </div>
+          </div>
+
+          <!-- Password Field with Show/Hide Toggle -->
+          <div class="form-field-group">
+            <div class="label-row">
+              <label for="passwordInput">Password</label>
+            </div>
+            <div class="input-container">
+              <span class="field-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+              </span>
+              <input
+                id="passwordInput"
+                [type]="showPassword() ? 'text' : 'password'"
+                class="custom-input"
+                placeholder="••••••••••••"
+                [value]="password()"
+                (input)="password.set($any($event.target).value)"
+                autocomplete="current-password"
+                required
+              />
+              <button
+                type="button"
+                class="toggle-pass-btn"
+                (click)="togglePassword()"
+                tabindex="-1"
+                [title]="showPassword() ? 'Hide password' : 'Show password'"
+              >
+                @if (showPassword()) {
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                  </svg>
+                } @else {
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                }
+              </button>
+            </div>
+          </div>
+
+          <!-- Submit Button with Spinner -->
+          <button
+            type="submit"
+            class="auth-submit-btn"
+            [disabled]="isLoading() || !username().trim() || !password().trim()"
+          >
+            @if (isLoading()) {
+              <span class="btn-spinner"></span>
+              <span>Verifying Credentials...</span>
+            } @else {
+              <span>Sign In to Dashboard</span>
+              <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            }
+          </button>
+        </form>
+      } @else {
+        <!-- 2FA CHALLENGE FORM -->
+        <div class="form-header animate-fade-in">
+          <div class="shield-badge 2fa-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+              <line x1="12" y1="18" x2="12.01" y2="18"></line>
+            </svg>
+          </div>
+          <h3>Two-Factor Verification</h3>
+          <p>Enter the 6-digit authentication passcode generated by your Authenticator app.</p>
+        </div>
+
+        @if (errorMessage()) {
+          <div class="error-alert">
+            <div class="error-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+            </div>
+            <div class="error-text">{{ errorMessage() }}</div>
+          </div>
+        }
+
+        <form (submit)="onVerify2FA(); $event.preventDefault()" class="auth-form animate-fade-in">
+          <div class="form-field-group">
+            <label for="totpInput">Authenticator Code</label>
+            <div class="input-container">
+              <span class="field-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+              </span>
+              <input
+                id="totpInput"
+                type="text"
+                class="custom-input font-mono text-center"
+                style="font-size: 1.4rem; letter-spacing: 6px; font-weight: 700; text-align: center;"
+                placeholder="000000"
+                maxlength="6"
+                autofocus
+                [value]="totpCode()"
+                (input)="totpCode.set($any($event.target).value)"
+                required
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            class="auth-submit-btn"
+            [disabled]="isLoading() || totpCode().trim().length !== 6"
+          >
+            @if (isLoading()) {
+              <span class="btn-spinner"></span>
+              <span>Verifying Code...</span>
+            } @else {
+              <span>Confirm & Authenticate</span>
+              <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            }
+          </button>
+
+          <button type="button" class="btn-back-login" (click)="cancel2FA()">
+            ← Back to Credentials Login
+          </button>
+        </form>
       }
-
-      <form (submit)="onLogin(); $event.preventDefault()" class="auth-form">
-        
-        <!-- Username / Email Field -->
-        <div class="form-field-group">
-          <label for="usernameInput">Username or Email</label>
-          <div class="input-container">
-            <span class="field-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                <circle cx="12" cy="7" r="4"></circle>
-              </svg>
-            </span>
-            <input
-              id="usernameInput"
-              type="text"
-              class="custom-input"
-              placeholder="admin or admin@proleadsolutions.co"
-              [value]="username()"
-              (input)="username.set($any($event.target).value)"
-              autocomplete="username"
-              required
-            />
-          </div>
-        </div>
-
-        <!-- Password Field with Show/Hide Toggle -->
-        <div class="form-field-group">
-          <div class="label-row">
-            <label for="passwordInput">Password</label>
-          </div>
-          <div class="input-container">
-            <span class="field-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-              </svg>
-            </span>
-            <input
-              id="passwordInput"
-              [type]="showPassword() ? 'text' : 'password'"
-              class="custom-input"
-              placeholder="••••••••••••"
-              [value]="password()"
-              (input)="password.set($any($event.target).value)"
-              autocomplete="current-password"
-              required
-            />
-            <button
-              type="button"
-              class="toggle-pass-btn"
-              (click)="togglePassword()"
-              tabindex="-1"
-              [title]="showPassword() ? 'Hide password' : 'Show password'"
-            >
-              @if (showPassword()) {
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-                  <line x1="1" y1="1" x2="23" y2="23"></line>
-                </svg>
-              } @else {
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                  <circle cx="12" cy="12" r="3"></circle>
-                </svg>
-              }
-            </button>
-          </div>
-        </div>
-
-        <!-- Submit Button with Spinner -->
-        <button
-          type="submit"
-          class="auth-submit-btn"
-          [disabled]="isLoading() || !username().trim() || !password().trim()"
-        >
-          @if (isLoading()) {
-            <span class="btn-spinner"></span>
-            <span>Verifying Credentials...</span>
-          } @else {
-            <span>Sign In to Dashboard</span>
-            <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-              <polyline points="12 5 19 12 12 19"></polyline>
-            </svg>
-          }
-        </button>
-      </form>
 
       <!-- Security Notice -->
       <div class="auth-security-footer">
@@ -207,7 +280,7 @@
           <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
           <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
         </svg>
-        <span>End-to-End Encrypted Session &bull; Bcrypt Key Authentication</span>
+        <span>End-to-End Encrypted Session &bull; Bcrypt &amp; RFC-6238 TOTP</span>
       </div>
     </div>
 
