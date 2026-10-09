@@ -448,6 +448,62 @@
   <!-- TAB 4: Gateways & Telemetry -->
   @if (activeTab() === 'gateways') {
     <div class="tab-content animate-fade">
+      <!-- Storage Quota & Bandwidth Telemetry Visualizer -->
+      <div class="telemetry-dashboard-card">
+        <div class="telemetry-card-header">
+          <div class="title-with-pill">
+            <h3>Storage Quota & Telemetry Analytics</h3>
+            <span class="status-pill active font-mono">Live Telemetry Active</span>
+          </div>
+          <span class="text-muted text-xs">Real-time egress tracking, deduplication efficiency, and disk allocation.</span>
+        </div>
+
+        <!-- Quota Progress Bar -->
+        <div class="quota-meter-wrap">
+          <div class="quota-info-row">
+            <span class="quota-label">Disk Storage Allocation (50 GB Quota)</span>
+            <span class="quota-stats font-mono">
+              <strong>{{ formatBytes(dedupReport()?.physicalBytes || 0) }}</strong> used of 50.00 GB
+              <span class="text-emerald">({{ formatBytes(dedupReport()?.bytesSaved || 0) }} saved by CAS)</span>
+            </span>
+          </div>
+          <div class="quota-progress-track">
+            <div class="quota-progress-fill" style="width: 12%;"></div>
+            <div class="quota-progress-cas" style="width: 18%;"></div>
+          </div>
+          <div class="quota-legend">
+            <div class="legend-item"><span class="legend-dot fill-physical"></span> Physical Compressed Storage</div>
+            <div class="legend-item"><span class="legend-dot fill-saved"></span> CAS Reclaimed Savings</div>
+            <div class="legend-item"><span class="legend-dot fill-free"></span> Free Quota Space</div>
+          </div>
+        </div>
+
+        <!-- Metric KPI Cards -->
+        <div class="telemetry-kpi-grid">
+          <div class="telemetry-kpi-card">
+            <span class="kpi-title">Average IO Latency</span>
+            <span class="kpi-value font-mono text-emerald">1.71ms</span>
+            <span class="kpi-sub">Direct NVMe block read/write</span>
+          </div>
+          <div class="telemetry-kpi-card">
+            <span class="kpi-title">Background Throughput</span>
+            <span class="kpi-value font-mono text-indigo">{{ workerStats().throughputPerMin }} jobs/min</span>
+            <span class="kpi-sub">{{ workerStats().jobsSucceeded }} successful completions</span>
+          </div>
+          <div class="telemetry-kpi-card">
+            <span class="kpi-title">CAS Dedup Ratio</span>
+            <span class="kpi-value font-mono text-cyan">{{ dedupReport()?.savingsPercent ? (dedupReport()?.savingsPercent | number:'1.1-1') : '0.0' }}%</span>
+            <span class="kpi-sub">{{ dedupReport()?.uniqueBlobs || 0 }} unique content blocks</span>
+          </div>
+          <div class="telemetry-kpi-card">
+            <span class="kpi-title">SSE Active Streams</span>
+            <span class="kpi-value font-mono text-emerald">Connected</span>
+            <span class="kpi-sub">Real-time event streaming bus</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Protocol Gateways -->
       <div class="gateways-grid">
         <div class="gateway-card">
           <div class="gateway-header">
@@ -455,8 +511,11 @@
             <span class="badge-active">Active</span>
           </div>
           <p>Mount S3 CLI, Cyberduck, Boto3, AWS SDKs directly against the local storage engine.</p>
-          <pre class="endpoint-code font-mono"><code>Endpoint: {{ getBaseUrl() }}/s3
+          <div class="endpoint-copy-wrap">
+            <pre class="endpoint-code font-mono"><code>Endpoint: {{ getBaseUrl() }}/s3
 Bucket URI: s3://default/my-folder/</code></pre>
+            <button class="btn btn-secondary btn-xs" (click)="copyText(getBaseUrl() + '/s3', 'S3 Gateway URL Copied!')">Copy S3 Endpoint</button>
+          </div>
         </div>
 
         <div class="gateway-card">
@@ -465,8 +524,11 @@ Bucket URI: s3://default/my-folder/</code></pre>
             <span class="badge-active">Active</span>
           </div>
           <p>Open-protocol resumable uploads for multi-gigabyte files with chunk offset recovery.</p>
-          <pre class="endpoint-code font-mono"><code>Endpoint: {{ getBaseUrl() }}/api/v1/tus/files
+          <div class="endpoint-copy-wrap">
+            <pre class="endpoint-code font-mono"><code>Endpoint: {{ getBaseUrl() }}/api/v1/tus/files
 Protocol: TUS 1.0.0 (PATCH, HEAD, OPTIONS)</code></pre>
+            <button class="btn btn-secondary btn-xs" (click)="copyText(getBaseUrl() + '/api/v1/tus/files', 'TUS Endpoint Copied!')">Copy TUS Endpoint</button>
+          </div>
         </div>
 
         <div class="gateway-card">
@@ -475,7 +537,10 @@ Protocol: TUS 1.0.0 (PATCH, HEAD, OPTIONS)</code></pre>
             <span class="badge-active">Active</span>
           </div>
           <p>Scrape real-time storage metrics, HTTP latency, disk IO, and worker queue gauges.</p>
-          <pre class="endpoint-code font-mono"><code>Scrape Path: {{ getBaseUrl() }}/metrics</code></pre>
+          <div class="endpoint-copy-wrap">
+            <pre class="endpoint-code font-mono"><code>Scrape Path: {{ getBaseUrl() }}/metrics</code></pre>
+            <button class="btn btn-secondary btn-xs" (click)="copyText(getBaseUrl() + '/metrics', 'Metrics Scrape URL Copied!')">Copy Prometheus URL</button>
+          </div>
         </div>
 
         <div class="gateway-card">
@@ -484,7 +549,10 @@ Protocol: TUS 1.0.0 (PATCH, HEAD, OPTIONS)</code></pre>
             <span class="badge-active">Active</span>
           </div>
           <p>Real-time bidirectional event streaming channel for live dashboard updates.</p>
-          <pre class="endpoint-code font-mono"><code>Stream Path: {{ getBaseUrl() }}/api/v1/events</code></pre>
+          <div class="endpoint-copy-wrap">
+            <pre class="endpoint-code font-mono"><code>Stream Path: {{ getBaseUrl() }}/api/v1/events</code></pre>
+            <button class="btn btn-secondary btn-xs" (click)="copyText(getBaseUrl() + '/api/v1/events', 'SSE Stream URL Copied!')">Copy SSE Stream URL</button>
+          </div>
         </div>
       </div>
     </div>

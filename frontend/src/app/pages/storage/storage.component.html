@@ -346,6 +346,11 @@
                           <button class="icon-btn" (click)="openPreviewModal(f, $event)" title="Quick Preview">
                             <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                           </button>
+                          @if (f.contentType.startsWith('image/')) {
+                            <button class="icon-btn highlight-btn" (click)="openDetailModal(f, $event)" title="Image CDN & Transform Playground">
+                              <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                            </button>
+                          }
                           <button class="icon-btn" (click)="openShareModal(f, $event)" title="Public Share Link">
                             <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
                           </button>
@@ -473,6 +478,11 @@
                   <button class="icon-btn" (click)="openPreviewModal(f, $event)" title="Preview">
                     <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                   </button>
+                  @if (f.contentType.startsWith('image/')) {
+                    <button class="icon-btn highlight-btn" (click)="openDetailModal(f, $event)" title="Image CDN & Transform Playground">
+                      <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                    </button>
+                  }
                   <button class="icon-btn" (click)="openShareModal(f, $event)" title="Share">
                     <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle></svg>
                   </button>
@@ -538,6 +548,12 @@
                 <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                 <span>Preview</span>
               </button>
+              @if (inspectedItem()?.contentType?.startsWith('image/')) {
+                <button class="btn btn-secondary btn-sm highlight-btn" (click)="openDetailModal(inspectedItem()!)">
+                  <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                  <span>CDN Transform</span>
+                </button>
+              }
               <a class="btn btn-secondary btn-sm" [href]="getDirectDownloadUrl(inspectedItem()!)" target="_blank" download>
                 <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                 <span>Download</span>
@@ -723,6 +739,107 @@
             <a class="btn btn-secondary btn-sm" [href]="getDirectDownloadUrl(previewFile()!)" target="_blank">Open Tab</a>
             <button class="btn btn-secondary btn-sm" (click)="copyText(getDirectDownloadUrl(previewFile()!), 'Download URL Copied!')">Copy Link</button>
             <a class="btn btn-primary btn-sm" [href]="getDirectDownloadUrl(previewFile()!)" target="_blank" download>Download</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: Image Transformation & CDN Playground -->
+  @if (selectedFile()) {
+    <div class="modal-backdrop" (click)="closeDetailModal()">
+      <div class="modal-card modal-lg playground-card" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <div class="icon-circle-indigo">
+              <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+            </div>
+            <div>
+              <h3>Image Transformation & CDN Playground</h3>
+              <p class="modal-subtitle">Real-time edge transcoding, WebP compression, aspect cropping, and dynamic resizing for <strong>{{ selectedFile()?.name }}</strong>.</p>
+            </div>
+          </div>
+          <button class="close-btn" (click)="closeDetailModal()">✕</button>
+        </div>
+
+        <div class="playground-layout">
+          <!-- Left: Transformation Controls -->
+          <div class="playground-controls">
+            <!-- Quick Presets -->
+            <div class="control-section">
+              <label class="control-label">Quick Resolution Presets</label>
+              <div class="preset-pills">
+                <button type="button" class="preset-btn" [class.active]="transformW() === 0 && transformH() === 0" (click)="setTransform(0, 0)">Original</button>
+                <button type="button" class="preset-btn" [class.active]="transformW() === 150 && transformH() === 150" (click)="setTransform(150, 150)">Thumbnail (150x150)</button>
+                <button type="button" class="preset-btn" [class.active]="transformW() === 400 && transformH() === 300" (click)="setTransform(400, 300)">Card (400x300)</button>
+                <button type="button" class="preset-btn" [class.active]="transformW() === 800 && transformH() === 800" (click)="setTransform(800, 800)">Avatar/Square (800x800)</button>
+                <button type="button" class="preset-btn" [class.active]="transformW() === 1200 && transformH() === 630" (click)="setTransform(1200, 630)">Banner (1200x630)</button>
+                <button type="button" class="preset-btn" [class.active]="transformW() === 1920 && transformH() === 1080" (click)="setTransform(1920, 1080)">Full HD (1080p)</button>
+              </div>
+            </div>
+
+            <!-- Custom Dimensions -->
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label>Width (px)</label>
+                <input type="number" class="form-control" [ngModel]="transformW()" (ngModelChange)="transformW.set($event)" min="0" max="4000" placeholder="0 = Auto" />
+              </div>
+              <div class="form-group flex-1">
+                <label>Height (px)</label>
+                <input type="number" class="form-control" [ngModel]="transformH()" (ngModelChange)="transformH.set($event)" min="0" max="4000" placeholder="0 = Auto" />
+              </div>
+            </div>
+
+            <!-- Fit & Format -->
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label>Fitting Strategy</label>
+                <select class="form-control" [ngModel]="transformFit()" (ngModelChange)="transformFit.set($event)">
+                  <option value="cover">Cover (Center Crop & Fill)</option>
+                  <option value="contain">Contain (Preserve Full Aspect)</option>
+                  <option value="fill">Fill (Force Exact Stretch)</option>
+                  <option value="scale">Scale (Proportional Scale)</option>
+                </select>
+              </div>
+              <div class="form-group flex-1">
+                <label>Target Format</label>
+                <select class="form-control" [ngModel]="transformFormat()" (ngModelChange)="transformFormat.set($event)">
+                  <option value="webp">WebP (Next-Gen Compressed)</option>
+                  <option value="jpeg">JPEG (Standard Web)</option>
+                  <option value="png">PNG (Lossless Transparency)</option>
+                  <option value="gif">GIF</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Quality Slider -->
+            <div class="form-group">
+              <div class="slider-label-row">
+                <label>Compression Quality</label>
+                <span class="slider-badge">{{ transformQuality() }}%</span>
+              </div>
+              <input type="range" class="form-range" min="10" max="100" step="5" [ngModel]="transformQuality()" (ngModelChange)="transformQuality.set($event)" />
+            </div>
+          </div>
+
+          <!-- Right: Live Transformed Preview & CDN Output -->
+          <div class="playground-preview-pane">
+            <div class="preview-box-viewport">
+              <img [src]="getCustomTransformedUrl()" class="live-transformed-img" alt="Transformed Output" />
+            </div>
+
+            <div class="generated-url-box">
+              <span class="url-label">On-Demand CDN Transform URL</span>
+              <div class="url-copy-row">
+                <input type="text" class="form-control font-mono text-xs" [value]="getCustomTransformedUrl()" readonly />
+                <button class="btn btn-secondary btn-sm" (click)="copyText(getCustomTransformedUrl(), 'Transformed CDN URL Copied!')">Copy</button>
+              </div>
+            </div>
+
+            <div class="playground-actions">
+              <a class="btn btn-secondary btn-sm" [href]="getCustomTransformedUrl()" target="_blank">Open Full Tab</a>
+              <a class="btn btn-primary btn-sm" [href]="getCustomTransformedUrl()" download target="_blank">Download Transformed</a>
+            </div>
           </div>
         </div>
       </div>

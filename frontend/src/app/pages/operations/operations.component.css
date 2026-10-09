@@ -830,3 +830,148 @@
   .search-wrap input { width: 100%; box-sizing: border-box; }
   .jobs-table-card { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 }
+
+/* --- Telemetry & Storage Quota Visualizer Styles --- */
+.telemetry-dashboard-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+.telemetry-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.title-with-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.title-with-pill h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.quota-meter-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--bg-badge);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
+.quota-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+}
+
+.quota-label {
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.quota-stats {
+  color: var(--text-muted);
+}
+
+.quota-progress-track {
+  height: 10px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 5px;
+  overflow: hidden;
+  display: flex;
+  border: 1px solid var(--border-color);
+}
+
+.quota-progress-fill {
+  background: linear-gradient(90deg, #6366f1, #818cf8);
+  height: 100%;
+}
+
+.quota-progress-cas {
+  background: linear-gradient(90deg, #10b981, #34d399);
+  height: 100%;
+}
+
+.quota-legend {
+  display: flex;
+  gap: 18px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.legend-dot.fill-physical { background: #6366f1; }
+.legend-dot.fill-saved    { background: #10b981; }
+.legend-dot.fill-free     { background: var(--border-color); }
+
+.telemetry-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.telemetry-kpi-card {
+  background: var(--bg-badge);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.telemetry-kpi-card .kpi-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.telemetry-kpi-card .kpi-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.telemetry-kpi-card .kpi-sub {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.endpoint-copy-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.text-indigo { color: #6366f1 !important; }
+.text-cyan { color: #06b6d4 !important; }

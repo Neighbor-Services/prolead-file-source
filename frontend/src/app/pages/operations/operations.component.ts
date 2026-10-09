@@ -254,4 +254,12 @@ export class OperationsComponent implements OnInit, OnDestroy {
   getBaseUrl(): string {
     return this.goStore.getBaseUrl() || (typeof window !== 'undefined' ? window.location.origin : 'https://file.proleadsolutions.co');
   }
+
+  copyText(text: string, msg: string): void {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(() => {
+        this.notify.success(msg);
+      });
+    }
+  }
 }
